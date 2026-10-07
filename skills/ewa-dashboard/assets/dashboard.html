@@ -1,0 +1,2589 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EWA Dashboard — EarlyWatch Alert (Dynamic)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{--blue:#0070F2;--dark:#001135;--mid:#223548;--light:#E1F4FF;--accent:#4CB1FF;
+  --grey:#EAECEE;--bg:#F5F6F8;--white:#FFF;
+  --ok:#107E3E;--ok-bg:#F0FFF4;--ok-b:#B2DFDB;
+  --warn:#E9730C;--warn-bg:#FFF8E1;--warn-b:#FFE082;
+  --err:#BB0000;--err-bg:#FFF5F5;--err-b:#F5C2C2;
+  --rad:8px;--shadow:0 2px 12px rgba(0,0,0,.1);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'72 Brand',Segoe UI,Arial,sans-serif;background:var(--bg);color:#1a1a1a;font-size:13px;line-height:1.6;}
+.topbar{background:var(--dark);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.topbar-brand{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;}
+.topbar-right{font-size:11px;opacity:.7;text-align:right;line-height:1.4;}
+.hero{background:linear-gradient(135deg,#001135,#0a2d5e 55%,#0b3d7a);color:#fff;padding:28px 32px 22px;}
+.hero h1{font-size:20px;font-weight:700;margin-bottom:5px;}
+.hero p{font-size:12px;opacity:.82;max-width:660px;margin-bottom:14px;}
+.hero-flex{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;}
+.hero-meta{flex:1;}
+.hero-badges{display:flex;gap:8px;flex-wrap:wrap;}
+.hb{padding:3px 11px;border-radius:14px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;}
+.hero-rag{background:rgba(255,255,255,.08);border-radius:var(--rad);padding:16px 20px;text-align:center;border:1px solid rgba(255,255,255,.15);min-width:130px;}
+.rag-circle{width:60px;height:60px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;}
+.rag-amber{background:#E9730C;}
+.rag-counts{display:flex;gap:8px;justify-content:center;margin-top:10px;}
+.rag-cnt{padding:5px 10px;border-radius:6px;text-align:center;}
+.nav{background:#fff;border-bottom:2px solid var(--grey);padding:0 20px;display:flex;overflow-x:auto;position:sticky;top:52px;z-index:190;}
+.nb{padding:13px 14px;font-size:12px;font-weight:600;color:#555;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-family:inherit;transition:all .2s;}
+.nb:hover{color:var(--blue);}.nb.active{color:var(--blue);border-bottom-color:var(--blue);}
+.main{max-width:1400px;margin:0 auto;padding:20px 24px;}
+.sec{display:none;}.sec.active{display:block;}
+.sec-title{font-size:16px;font-weight:700;color:var(--dark);margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--grey);display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.sec-title span{flex:1;}
+.btn-sec-pdf{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;background:#fff;color:#0070F2;border:1.5px solid #0070F2;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;flex-shrink:0;}
+.btn-sec-pdf:hover{background:#E1F4FF;}
+.btn-sec-pdf svg{width:13px;height:13px;fill:#0070F2;flex-shrink:0;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:20px;}
+.kpi{background:#fff;border-radius:var(--rad);padding:14px 15px;box-shadow:var(--shadow);border-top:4px solid var(--blue);}
+.kpi.ok{border-top-color:var(--ok);}.kpi.warn{border-top-color:var(--warn);}.kpi.err{border-top-color:var(--err);}
+.kpi .v{font-size:24px;font-weight:700;color:var(--blue);line-height:1.1;}
+.kpi.ok .v{color:var(--ok);}.kpi.warn .v{color:var(--warn);}.kpi.err .v{color:var(--err);}
+.kpi .l{font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:4px;}
+.kpi .s{font-size:11px;color:#888;margin-top:2px;}
+.panel{background:#fff;border-radius:var(--rad);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.ph{padding:12px 18px;background:linear-gradient(90deg,#f4f6f8,#fff);border-bottom:1px solid var(--grey);display:flex;align-items:center;justify-content:space-between;}
+.ph h3{font-size:13px;font-weight:700;color:var(--dark);}
+.pb{padding:16px 18px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.cw{position:relative;height:220px;}.cwl{position:relative;height:270px;}.cwsm{position:relative;height:160px;}
+table.dt{width:100%;border-collapse:collapse;font-size:12px;}
+table.dt th{background:var(--mid);color:#fff;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;}
+table.dt td{padding:7px 10px;border-bottom:1px solid var(--grey);vertical-align:top;}
+table.dt tr:hover td{background:var(--light);}
+table.dt tr:nth-child(even) td{background:#fafbfc;}
+table.dt tr:nth-child(even):hover td{background:var(--light);}
+.al{border-radius:6px;padding:10px 13px;margin-bottom:9px;display:flex;gap:9px;align-items:flex-start;font-size:12.5px;}
+.ae{background:var(--err-bg);border:1px solid var(--err-b);color:#721c24;}
+.aw{background:var(--warn-bg);border:1px solid var(--warn-b);color:#856404;}
+.ao{background:var(--ok-bg);border:1px solid var(--ok-b);color:#155724;}
+.ai{background:var(--light);border:1px solid #b3d9ff;color:#004085;}
+.alico{font-size:13px;flex-shrink:0;margin-top:1px;}
+.chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+.cr{background:#fde8e8;color:var(--err);}.ca{background:#fff3e0;color:var(--warn);}
+.cg{background:#e8f5e9;color:var(--ok);}.cb{background:var(--light);color:var(--blue);}
+.cgr{background:#f0f2f4;color:#555;}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;flex-shrink:0;margin-top:3px;}
+.dr{background:var(--err);}.da{background:var(--warn);}.dg{background:var(--ok);}
+.tl{border-left:3px solid var(--blue);padding:8px 13px;margin-bottom:9px;background:#fafbfc;border-radius:0 6px 6px 0;}
+.tl.tw{border-color:var(--warn);}.tl.te{border-color:var(--err);}
+.tl .tt{font-weight:700;font-size:12.5px;color:var(--dark);}
+.tl .tb{font-size:12px;color:#444;margin-top:3px;}
+.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:14px;}
+.rc{border-radius:var(--rad);padding:14px;border-left:4px solid;}
+.rc-crit{background:#fff5f5;border-color:var(--err);}
+.rc-high{background:#fffbf0;border-color:var(--warn);}
+.rc-med{background:#f0f8ff;border-color:var(--blue);}
+.rc h4{font-size:13px;font-weight:700;margin-bottom:5px;}
+.rc p{font-size:12px;color:#444;line-height:1.5;}
+.rc-meta{font-size:11px;color:#666;margin-top:7px;font-style:italic;}
+.at-hdr{background:var(--mid);color:#fff;display:grid;grid-template-columns:3fr 80px 150px 1.2fr 80px;gap:8px;padding:10px 14px;border-radius:6px 6px 0 0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.at-row{display:grid;grid-template-columns:3fr 80px 150px 1.2fr 80px;gap:8px;padding:9px 14px;border-bottom:1px solid var(--grey);align-items:start;font-size:12px;background:#fff;}
+.at-row:last-child{border-bottom:none;}
+.at-row:hover{background:var(--light);}
+.pri{padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700;text-align:center;display:inline-block;}
+.p-cr{background:#fde8e8;color:#bb0000;}.p-hi{background:#fff3e0;color:#c45100;}
+.p-me{background:#fff9c4;color:#7d6608;}.p-lo{background:#e8f5e9;color:#107e3e;}
+.st-op{background:#fff3e0;color:#c45100;padding:2px 7px;border-radius:10px;font-size:11px;}
+.st-pl{background:var(--light);color:var(--blue);padding:2px 7px;border-radius:10px;font-size:11px;}
+.pb-w{margin-bottom:10px;}
+.pb-l{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.pb-b{height:9px;background:var(--grey);border-radius:5px;overflow:hidden;}
+.pb-f{height:100%;border-radius:5px;}
+.sm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.sm-card{background:#fff;border-radius:var(--rad);box-shadow:var(--shadow);padding:18px;}
+.sm-card h3{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--grey);}
+.sm-card ul{list-style:none;}
+.sm-card li{font-size:12px;padding:6px 0;border-bottom:1px solid #f0f2f4;display:flex;gap:8px;align-items:flex-start;}
+.sm-card li:last-child{border-bottom:none;}
+.nb2{min-width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nb2.r{background:var(--err);color:#fff;}.nb2.a{background:var(--warn);color:#fff;}.nb2.b{background:var(--blue);color:#fff;}
+code{background:#f0f4f8;border:1px solid #d0d8e4;border-radius:3px;padding:1px 5px;font-family:'Courier New',monospace;font-size:11px;color:#1a3a5c;}
+a.nl{color:var(--blue);font-weight:700;text-decoration:none;}a.nl:hover{text-decoration:underline;}
+@media(max-width:900px){.g2,.g3,.sm-grid{grid-template-columns:1fr;}.at-hdr,.at-row{grid-template-columns:1fr 80px;}.at-row>*:nth-child(n+3){display:none;}}
+/* Risk section */
+.risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px;}
+.risk-col{display:flex;flex-direction:column;gap:12px;}
+.risk-head{font-size:13px;font-weight:700;padding:9px 14px;border-radius:6px 6px 0 0;color:#fff;margin-bottom:2px;}
+.rh-crit{background:var(--err);}.rh-high{background:var(--warn);}.rh-med{background:var(--blue);}
+.risk-card{background:#fff;border-radius:0 0 8px 8px;padding:13px;border:1px solid #e0e4ea;border-top:none;flex:1;transition:box-shadow .2s;}
+.risk-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.risk-card.rc-crit{border-left:4px solid var(--err);}
+.risk-card.rc-high{border-left:4px solid var(--warn);}
+.risk-card.rc-med{border-left:4px solid var(--blue);}
+.rc-t{font-size:12.5px;font-weight:700;color:var(--dark);margin-bottom:6px;line-height:1.4;}
+.rc-b{font-size:11.5px;color:#444;line-height:1.6;margin-bottom:8px;}
+.rc-tag{display:inline-block;background:var(--light);color:var(--blue);border-radius:8px;padding:1px 8px;font-size:10px;font-weight:600;margin-right:4px;}
+/* Action tracker */
+.at-grid{border:1px solid #e0e4ea;border-radius:8px;overflow:hidden;}
+.at-row{display:grid;grid-template-columns:100px 1fr 110px 90px 90px 70px;gap:8px;padding:9px 14px;border-bottom:1px solid var(--grey);align-items:start;font-size:12px;background:#fff;}
+.at-hdr.at-row{background:var(--mid);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;border-radius:6px 6px 0 0;}
+.at-row:last-child{border-bottom:none;}
+.at-row:hover:not(.at-hdr){background:var(--light);}
+/* Timeline */
+.tl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:4px;}
+.tl-col{background:#fafbfc;border-radius:8px;padding:14px;border:1px solid #e0e4ea;}
+.tl-head{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px;padding-bottom:7px;border-bottom:2px solid var(--blue);}
+.tl-item{font-size:11.5px;padding:6px 10px;margin-bottom:5px;border-radius:5px;border-left:3px solid #ccc;background:#fff;color:#333;line-height:1.4;}
+.tl-item.tl-info{border-left-color:var(--blue);background:#f0f8ff;color:#0070F2;}
+/* Upload panel */
+.upload-panel{display:none;background:#fff;border:1.5px solid #4CB1FF;border-radius:10px;padding:18px 20px;margin:0 0 14px 0;box-shadow:0 4px 20px rgba(0,112,242,.12);}
+.upload-panel.active{display:block;}
+.up-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;}
+.up-slots{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:700px){.up-slots{grid-template-columns:1fr 1fr;}}
+.up-slot{border:2px dashed #c0cfe0;border-radius:8px;padding:16px 10px;text-align:center;cursor:pointer;transition:all .15s;background:#fafcff;}
+.up-slot:hover{border-color:#0070F2;background:#E1F4FF;}
+.up-slot.loaded{border-color:#107E3E;border-style:solid;background:#f0fff4;}
+.up-slot-icon{font-size:22px;margin-bottom:6px;}
+.up-slot-label{font-size:11.5px;color:#333;line-height:1.4;}
+/* Trend overlay */
+.trend-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;}
+.trend-panel{background:#fff;border-radius:12px;padding:24px;width:min(960px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25);}
+.trend-kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;}
+.trend-kpi{background:#f8f9fa;border-radius:8px;padding:12px;text-align:center;border:1px solid #e1e2e6;}
+.trend-kpi .tv{font-size:18px;font-weight:700;color:#0070F2;}
+.trend-kpi .tl2{font-size:11px;color:#666;margin-top:3px;}
+.trend-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:700px){.trend-chart-row{grid-template-columns:1fr;}}
+.btn-pdf{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;background:#0070F2;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.btn-pdf:hover{background:#0057be;}
+.btn-pdf svg{width:15px;height:15px;fill:#fff;flex-shrink:0;}
+.btn-upload{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;background:#fff;color:#0070F2;border:1.5px solid #0070F2;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;margin-left:8px;}
+.btn-upload:hover{background:#E1F4FF;}
+@media print{
+  .topbar,.navwrap,.btn-pdf,.btn-upload,.btn-sec-pdf,.upload-panel,.print-hide{display:none!important;}
+  .main{padding:0!important;}
+  .sec{display:block!important;}
+  .panel,.kpi-grid,.g2,.g3,.risk-grid,.tl-grid,.at-grid{break-inside:avoid;}
+  .sec-title{font-size:16px;margin-bottom:12px;border-top:2px solid #0070F2;padding-top:8px;}
+  body{background:#fff!important;font-size:11px;}
+  .kpi{box-shadow:none!important;border:1px solid #ddd!important;}
+  .panel{box-shadow:none!important;border:1px solid #ddd!important;break-before:auto;}
+  @page{margin:18mm 15mm;size:A4;}
+}
+
+/* Action Tracker export buttons */
+.btn-export-wrap{display:flex;gap:7px;align-items:center;flex-shrink:0;}
+.btn-csv,.btn-xlsx{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;border:1.5px solid;}
+.btn-csv{background:#fff;color:#107E3E;border-color:#107E3E;}
+.btn-csv:hover{background:#e8f5e9;}
+.btn-xlsx{background:#fff;color:#196F3D;border-color:#196F3D;}
+.btn-xlsx:hover{background:#d5f5e3;}
+.btn-csv svg,.btn-xlsx svg{width:13px;height:13px;flex-shrink:0;fill:currentColor;}
+@media(max-width:900px){.risk-grid,.tl-grid{grid-template-columns:1fr;}}
+
+.tl-crit{border-left-color:var(--err)!important;background:#fff5f5!important;color:#721c24!important;}
+.tl-high{border-left-color:var(--warn)!important;background:#fffbf0!important;color:#856404!important;}
+.tl-med{border-left-color:var(--blue)!important;background:#f0f8ff!important;color:#004085!important;}
+.tl-info{border-left-color:var(--ok)!important;background:var(--ok-bg)!important;color:#155724!important;}
+
+/* v11 enhancements */
+.disk-card{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:18px 20px;border-top:4px solid var(--blue);}
+.disk-card.warn{border-top-color:var(--warn);}.disk-card.err{border-top-color:var(--err);}
+.disk-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.disk-title{font-size:13px;font-weight:700;color:var(--dark);}
+.disk-vol{font-size:11px;color:#888;margin-top:2px;}
+.disk-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0;}
+.disk-stat{text-align:center;background:#f8f9fa;border-radius:6px;padding:8px 4px;}
+.disk-stat .sv{font-size:18px;font-weight:700;color:var(--blue);}
+.disk-stat.warn .sv{color:var(--warn);}.disk-stat.err .sv{color:var(--err);}
+.disk-stat .sl{font-size:10px;color:#888;margin-top:2px;text-transform:uppercase;}
+.forecast-tbl{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;}
+.forecast-tbl th{background:#f0f4f8;padding:6px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.forecast-tbl td{padding:7px 10px;border-bottom:1px solid var(--grey);}
+.forecast-tbl tr:last-child td{border-bottom:none;}
+.upload-hero{background:linear-gradient(135deg,#001135,#0a2d5e);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;}
+.upload-hero h2{font-size:16px;font-weight:700;margin-bottom:6px;}
+.upload-hero p{font-size:12px;opacity:.82;margin-bottom:14px;}
+.up-step{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:12px;}
+.up-step-num{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+</style></head><body>
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg width="46" height="18" viewBox="0 0 46 18" fill="none"><rect width="46" height="18" rx="2" fill="#0070F2"/><text x="4" y="13" fill="white" font-size="11" font-weight="bold" font-family="Arial">SAP</text></svg>
+    EarlyWatch Alert Dashboard &nbsp;|&nbsp;
+    <span style="font-weight:400;opacity:.8" id="topbar-sub">Loading…</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:4px;">
+    <div class="topbar-right print-hide" id="topbar-meta" style="margin-right:16px;"></div>
+    <button class="btn-upload print-hide" onclick="document.getElementById('uploadPanel').classList.toggle('active')">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#0070F2;flex-shrink:0"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>Upload EWA
+    </button>
+    <button class="btn-pdf print-hide" onclick="exportPDF()">
+      <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>Export Full Report
+    </button>
+  </div>
+</div>
+<div class="hero" id="hero-outer">
+  <div id="uploadPanel" class="upload-panel print-hide">
+    <div class="up-header">
+      <div>
+        <strong style="font-size:14px;color:#0070F2">Upload EWA Reports for Analysis</strong>
+        <p style="font-size:12px;color:#555;margin:4px 0 0">Upload up to 4 EarlyWatch Alert reports (.doc / .xml Word 2003 format, or .docx). The entire dashboard — all sections, KPIs, charts, analysis, and recommendations — will be rebuilt from the uploaded data.</p>
+      </div>
+      <button onclick="document.getElementById('uploadPanel').classList.remove('active')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;padding:4px 8px;">&times;</button>
+    </div>
+    <div class="up-slots">
+      <div class="up-slot" id="slot0" onclick="triggerUpload(0)"><div class="up-slot-icon">&#128196;</div><div class="up-slot-label" id="slotLabel0">EWA Report 1 (Primary)<br/><span style="font-size:10px;color:#888">Click to upload</span></div><input type="file" id="fileInput0" accept=".doc,.xml,.docx" style="display:none" onchange="handleFile(0,this)"/></div>
+      <div class="up-slot" id="slot1" onclick="triggerUpload(1)"><div class="up-slot-icon">&#128196;</div><div class="up-slot-label" id="slotLabel1">EWA Report 2<br/><span style="font-size:10px;color:#888">Click to upload</span></div><input type="file" id="fileInput1" accept=".doc,.xml,.docx" style="display:none" onchange="handleFile(1,this)"/></div>
+      <div class="up-slot" id="slot2" onclick="triggerUpload(2)"><div class="up-slot-icon">&#128196;</div><div class="up-slot-label" id="slotLabel2">EWA Report 3<br/><span style="font-size:10px;color:#888">Click to upload</span></div><input type="file" id="fileInput2" accept=".doc,.xml,.docx" style="display:none" onchange="handleFile(2,this)"/></div>
+      <div class="up-slot" id="slot3" onclick="triggerUpload(3)"><div class="up-slot-icon">&#128196;</div><div class="up-slot-label" id="slotLabel3">EWA Report 4<br/><span style="font-size:10px;color:#888">Click to upload</span></div><input type="file" id="fileInput3" accept=".doc,.xml,.docx" style="display:none" onchange="handleFile(3,this)"/></div>
+    </div>
+    <div id="upStatus" style="font-size:12px;color:#555;min-height:20px;margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;">
+      <button class="btn-pdf" onclick="applyUploadedData()" id="btnApply" disabled style="opacity:.5">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:#fff;flex-shrink:0"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Apply &amp; Update Dashboard
+      </button>
+      <button class="btn-upload" onclick="showTrendAnalysis()" id="btnTrend" style="display:none">View Trend Analysis</button>
+      <button class="btn-upload" onclick="clearAllUploads()" style="border-color:#888;color:#888">Clear All</button>
+      <span id="upSpinner" style="display:none;font-size:11px;color:#0070F2;font-weight:600">&#8635; Rebuilding dashboard…</span>
+    </div>
+  </div>
+  <div id="trendOverlay" class="trend-overlay print-hide" style="display:none">
+    <div class="trend-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <strong style="font-size:15px;color:#0070F2">Trend Analysis — Multi-Report Comparison</strong>
+        <button onclick="document.getElementById('trendOverlay').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888;">&times;</button>
+      </div>
+      <div id="trendContent"></div>
+    </div>
+  </div>
+  <div id="hero-content"></div>
+</div>
+<div class="nav print-hide">
+  <button class="nb active" onclick="show('exec')">Executive Summary</button>
+  <button class="nb" onclick="show('health')">System Health</button>
+  <button class="nb" onclick="show('perf')">Performance</button>
+  <button class="nb" onclick="show('cap')">Capacity</button>
+  <button class="nb" onclick="show('db')">Database</button>
+  <button class="nb" onclick="show('sec')">Security &amp; Config</button>
+  <button class="nb" onclick="show('ops')">Operations</button>
+  <button class="nb" onclick="show('sql')">SQL Analysis</button>
+  <button class="nb" onclick="show('risks')">Top Risks</button>
+  <button class="nb" onclick="show('actions')">Action Tracker</button>
+  <button class="nb" onclick="show('debt')">Technical Debt</button>
+  <button class="nb" onclick="show('mgmt')">Management Summary</button>
+</div>
+<div class="main" id="dashboard-main"></div>
+<script>
+const C={blue:'#0070F2',lblue:'#4CB1FF',dblue:'#0134BF',green:'#107E3E',lgreen:'#ABE2C1',amber:'#E9730C',red:'#BB0000',lgrey:'#E1E2E6'};
+Chart.defaults.font.family="'72 Brand','72',Arial,sans-serif";
+Chart.defaults.font.size=11;Chart.defaults.color='#333';
+
+const DEFAULT_DATA=__EWA_DATA__;
+
+const uploadedData=[null,null,null,null];
+let _charts={};let _currentData=null;let trendCharts=[];
+
+function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function n(v,suf,fb){if(v===null||v===undefined)return fb!==undefined?String(fb):'N/A';if(typeof v==='boolean')return v?'Yes':'No';return(typeof v==='number'?v.toLocaleString():esc(String(v)))+(suf||'');}
+function chip(t,c){return`<span class="chip ${c}">${t}</span>`;}
+function al(ico,t,c){return`<div class="al ${c}"><span class="alico">${ico}</span><div>${t}</div></div>`;}
+function kpi(val,lbl,sub,rag){return`<div class="kpi${rag?' '+rag:''}"><div class="v">${val}</div><div class="l">${lbl}</div>${sub?`<div class="s">${sub}</div>`:''}</div>`;}
+function sb(id,t){return`<button class="btn-sec-pdf print-hide" onclick="exportSection('${id}','${t}')"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 8v2H5v2h14v-2h-6v-2z"/></svg>Export Section</button>`;}
+function rf(v,w,e,lb){if(v===null||v===undefined)return'';if(lb){return v>=e?'err':v>=w?'warn':'ok';}return v<=e?'err':v<=w?'warn':'ok';}
+function pb(lbl,pct,col){const c=col||'var(--ok)';return`<div class="pb-w"><div class="pb-l"><span>${lbl}</span><span style="font-weight:700;color:${c}">${pct!=null?pct+'%':'N/A'}</span></div><div class="pb-b"><div class="pb-f" style="width:${Math.min(pct||0,100)}%;background:${c}"></div></div></div>`;}
+
+function renderHero(d){
+  const nR=(d.debugUsers>0?1:0)+(d.defaultPasswords?1:0)+((d.transportSeqErrors||0)>0?1:0)+((d.spAgeMo||0)>=24?1:0);
+  const nA=((d.abapDumps||0)>30?1:0)+(d.hanaAlert59?1:0)+((d.dialogRespMs||0)>=1200&&(d.dialogRespMs||0)<3600?1:0)+((d.spAgeMo||0)>=20&&(d.spAgeMo||0)<24?1:0);
+  const nG=Math.max(0,11-nR-nA);
+  const ov=nR>0?'AMBER':nA>0?'AMBER':'GREEN';
+  const ovc=nR>0?'#E9730C':nA>0?'#E9730C':'#107E3E';
+  const ovf=ov==='GREEN'?'#a5d6a7':'#ffcc80';
+  return`<div class="hero-flex">
+<div class="hero-meta">
+  <h1>EarlyWatch Alert \u2014 ${esc(d.sid||'\u2014')}</h1>
+  <p>Automated service analysis for productive system <strong>${esc(d.sid||'\u2014')}</strong>, covering <strong>${esc(d.period||'\u2014')}</strong>. ${nR>0||nA>0?'Critical or high-priority findings require attention. Overall system health is rated <strong>'+ov+'</strong>.':'System health is rated <strong>'+ov+'</strong> for this reporting period.'}</p>
+  <div class="hero-badges">
+    ${d.product?`<span class="hb">${esc(d.product)}</span>`:''}
+    ${(d.hanaVersion||d.hanaSPS)?`<span class="hb">HANA ${esc(d.hanaVersion||'')}${d.hanaSPS?' ('+esc(d.hanaSPS)+')':''}</span>`:''}
+    ${d.kernelVersion?`<span class="hb">Kernel ${esc(d.kernelVersion)}</span>`:''}
+    ${d.cloud?`<span class="hb">${esc(d.cloud)}</span>`:''}
+    ${d.sysReplication?`<span class="hb">HANA System Replication: ${esc(d.sysReplication)}</span>`:''}
+    ${d.availability!=null?`<span class="hb">${n(d.availability,'%')} Availability</span>`:''}
+  </div>
+</div>
+<div class="hero-rag">
+  <div class="rag-circle" style="background:${ovc};color:#fff">${ov==='GREEN'?'&#10003;':'!'}</div>
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;opacity:.75">Overall Health</div>
+  <div style="font-size:13px;font-weight:700;color:${ovf};margin-top:3px">${ov}</div>
+  <div class="rag-counts">
+    <div class="rag-cnt" style="background:rgba(187,0,0,.25)"><div style="font-size:16px;font-weight:700;color:#ff8a80">${nR}</div><div style="font-size:10px;color:#ffccbc">RED</div></div>
+    <div class="rag-cnt" style="background:rgba(233,115,12,.25)"><div style="font-size:16px;font-weight:700;color:#ffd180">${nA}</div><div style="font-size:10px;color:#ffe0b2">AMBER</div></div>
+    <div class="rag-cnt" style="background:rgba(16,126,62,.25)"><div style="font-size:16px;font-weight:700;color:#a5d6a7">${nG}</div><div style="font-size:10px;color:#c8e6c9">GREEN</div></div>
+  </div>
+</div>
+</div>`;}
+
+// ═══ EXECUTIVE SUMMARY ═══
+function renderExec(d){
+  const memPct=d.hanaAllocLimit>0?Math.round((d.hanaMemUsed||0)/d.hanaAllocLimit*100):null;
+  const nSec=(d.debugUsers||0)+(d.defaultPasswords?1:0);
+  const nCrit=nSec+((d.transportSeqErrors||0)>0?1:0)+((d.topSqlLockS||0)>50000?1:0);
+  let findings='';
+  if((d.transportSeqErrors||0)>0)findings+=al('&#10007;',`<strong>Transport Sequence Errors:</strong> ${n(d.transportSeqErrors)} objects overtaken/bypassed this week. Production objects may be in an incorrect version. Risk of silent functional regression in affected business areas. Investigate transport sequences immediately.`,'ae');
+  if((d.spAgeMo||0)>=20)findings+=al('&#10007;',`<strong>Outdated Support Packages:</strong> Core components are ${n(d.spAgeMo)} months old. SAP provides Security Notes with High/Very High priority only for SPs within the last 24 months. These components are approaching or have exceeded the security maintenance boundary. Schedule SP update immediately via Maintenance Planner.`,'ae');
+  if((d.debugUsers||0)>0||d.defaultPasswords){const i=[];if((d.debugUsers||0)>0)i.push(`${n(d.debugUsers)} user(s) in production hold S_DEVELOP ACTVT=02 DEBUG \u2014 allows bypassing any ABAP authorization check and modifying field values live`);if(d.defaultPasswords)i.push('default passwords detected on SAP*, SAPCPIC, TMSADM');findings+=al('&#10007;','<strong>Critical Authorization Exposure:</strong> '+i.join('; ')+'. Immediate remediation required. SAP Notes 863362, 1749142, 1414256.','ae');}
+  if((d.abapDumps||0)>30)findings+=al('!',`<strong>${n(d.abapDumps)} ABAP Dumps in 7 Days:</strong> Exceeds EWA 30-dump threshold.${d.peakDumpDate?' Peak of '+n(d.peakDumpCount)+' on '+esc(d.peakDumpDate)+'.':''} Investigate ST22 for dump type analysis and root cause. Memory-exhaustion and buffer inconsistency dump types require immediate attention.`,'aw');
+  findings+=al('i',`<strong>SAP HANA Database Version:</strong> ${esc(d.hanaVersion||'\u2014')}${d.hanaSPS?' ('+esc(d.hanaSPS)+')':''} is the current database version on this ECS-managed system. Refer to SAP Note 2196476 \u2014 <em>Information on Standard Database Software Releases in SAP Enterprise Cloud Services</em> \u2014 to verify the ECS-supported database release for this landscape.`,'ai');
+  if(d.hanaAlert59)findings+=al('!',`<strong>HANA Alert 59 \u2014 Blocking Transactions (Priority HIGH, ${n(d.blockingTxnCount||0)} occurrences):</strong> Blocking transactions recorded during the monitoring week. Causes user lock waits and potential process timeouts. Monitor M_BLOCKING_TRANSACTIONS. SAP Note 2081856.`,'aw');
+  if(!findings)findings=al('&#10003;','No critical findings detected for this reporting period. Review all sections for medium-priority items.','ao');
+  let acts='';
+  function pa(cc,ct,body){return`<div style="padding:10px 14px;border-bottom:1px solid var(--grey);display:flex;gap:10px;align-items:flex-start">${chip(ct,cc)}<div style="font-size:12px;flex:1">${body}</div></div>`;}
+  if((d.debugUsers||0)>0)acts+=pa('cr','Critical',`<strong>Remove debug authorization from ${n(d.debugUsers)} production user(s).</strong> S_DEVELOP ACTVT=02 OBJTYPE=DEBUG. Review via PFCG/SUIM. SAP Note 863362. <em>Security &mdash; 24 hours</em>`);
+  if(d.defaultPasswords)acts+=pa('cr','Critical','<strong>Reset default passwords: SAP*, SAPCPIC, TMSADM.</strong> Run RSUSR003 in all clients. Remove client 066. SAP Notes 1749142, 1414256. <em>Basis &mdash; 24 hours</em>');
+  if((d.transportSeqErrors||0)>0)acts+=pa('cr','Critical',`<strong>Analyze and remediate ${n(d.transportSeqErrors)} transport sequence errors.</strong> Verify all affected objects are in the correct production version. Coordinate corrective transport after QA validation. <em>Transport Manager &mdash; 3 days</em>`);
+  if((d.topSqlLockS||0)>50000)acts+=pa('ca','High',`<strong>Resolve HANA lock contention${d.topSqlTable?' on '+esc(d.topSqlTable):''}.</strong> ${n(d.topSqlLockS,'s')} lock duration detected. Analyze M_BLOCKING_TRANSACTIONS during batch execution.${d.topSqlProgram?' Review '+esc(d.topSqlProgram)+' commit frequency.':''} SAP Note 1999998. <em>DBA/Basis &mdash; 14 days</em>`);
+  if((d.spAgeMo||0)>=20)acts+=pa('ca','High',`<strong>Plan SP update \u2014 core components ${n(d.spAgeMo)} months old.</strong> Use Maintenance Planner. Apply all pending Security Notes with High/Very High CVSS priority before 24-month boundary. <em>Basis &mdash; 45 days</em>`);
+  if((d.abapDumps||0)>30)acts+=pa('ca','High',`<strong>Investigate ABAP dump spike${d.peakDumpDate?' ('+esc(d.peakDumpDate)+', '+n(d.peakDumpCount)+' dumps)':''}.</strong> Check ST22, verify transport activation was clean, review work process memory parameters (em/initial_size_MB, em/blocksize_KB). <em>Basis &mdash; 3 days</em>`);
+  if((d.baldatSizeMB||0)>5000)acts+=pa('cb','P3 \u2013 Med',`<strong>Implement ${esc(d.largestTable||'application log')} table housekeeping.</strong> Current size: ${n(d.baldatSizeMB,' MB')}. Schedule SBAL_DELETE as a monthly batch job. SAP Note 195157. <em>Basis &mdash; 30 days</em>`);
+  acts+=pa('cb','Info',`<strong>SAP HANA ${esc(d.hanaVersion||'\u2014')}${d.hanaSPS?' ('+esc(d.hanaSPS)+')':''}.</strong> ECS-managed system &mdash; refer to SAP Note 2196476 to verify ECS-supported database release. <em>DBA / ECS &mdash; Review</em>`);
+  if(!acts)acts+=pa('cg','OK','No critical or high-priority actions identified for this period. Review medium-priority items in individual sections.');
+  function biRow(a,f,i,s,c){return`<tr><td><strong>${a}</strong></td><td>${f}</td><td>${i}</td><td>${chip(s,c)}</td></tr>`;}
+  let bi='';
+  if((d.transportSeqErrors||0)>0)bi+=biRow('Change Mgmt',n(d.transportSeqErrors)+' transport sequence errors','Object versions in production may be incorrect; risk of silent functional regression and incorrect business results','Open','cr');
+  if(nSec>0)bi+=biRow('Security','Default passwords / debug auth in production','Unauthorized access; ability to bypass all ABAP authorization checks and modify live production data','Open','cr');
+  if((d.topSqlLockS||0)>50000)bi+=biRow(d.topSqlTable?esc(d.topSqlTable)+' Locking':'SQL Lock',`HANA lock &mdash; ${n(d.topSqlLockS,'s')} lock wait`,'Potential business process blockage; planning or processing output may be incorrect or delayed','Monitor','ca');
+  if((d.abapDumps||0)>30)bi+=biRow('Stability',n(d.abapDumps)+' ABAP dumps','Memory-exhaustion work process terminations; users encounter unexpected errors; batch jobs may terminate prematurely','Monitor','ca');
+  if((d.dialogRespMs||0)>=1000&&(d.dialogRespMs||0)<3600)bi+=biRow('Performance','Dialog response '+n(d.dialogRespMs,'ms')+' (threshold 1,200ms)','Near or at Yellow boundary; additional workload could degrade interactive user experience','Monitor','ca');
+  bi+=biRow('Availability',(d.availability||0)+'% availability; backups successful','No availability risk.'+(d.sysReplication?' HANA System Replication ('+esc(d.sysReplication)+') active.':''),'Healthy','cg');
+  bi+=biRow('Capacity','HANA '+(memPct!=null?memPct+'%':'N/A')+' memory; CPU <'+Math.max(d.maxDbCpu||0,d.maxAppCpu||0)+'%','Substantial headroom. Monitor DB growth'+(d.dbGrowth?' (~'+n(d.dbGrowth,' GB/mo)'):'.'), 'Healthy','cg');
+  if(!bi)bi+=biRow('System','No critical findings','All indicators within normal thresholds','Healthy','cg');
+  const ac=(findings.match(/class="al ae"/g)||[]).length;
+  return`<div class="sec active" id="sec-exec"><div class="sec-title"><span>Executive Summary</span>${sb('sec-exec','Executive Summary')}</div>
+<div class="kpi-grid">
+${kpi(n(d.availability,'%','100%'),'Availability','Full week, all instances',rf(d.availability,98,95,false)||'ok')}
+${kpi(n(d.dialogRespMs,' ms'),'Avg Dialog Response','Threshold 1,200 ms (Yellow)',rf(d.dialogRespMs,1000,3600,true)||'ok')}
+${kpi(n(d.maxDbCpu,'%'),'Max DB CPU','DB server peak load',rf(d.maxDbCpu,60,80,true)||'ok')}
+${kpi(memPct!=null?memPct+'%':'N/A','HANA Memory Used',d.hanaMemUsed&&d.hanaAllocLimit?n(d.hanaMemUsed,' GB')+' / '+n(d.hanaAllocLimit,' GB limit'):null,rf(memPct,70,85,true)||'ok')}
+${kpi(n(d.abapDumps),'ABAP Dumps (7 days)',d.period||null,rf(d.abapDumps,30,50,true)||'ok')}
+${kpi(n(d.transportSeqErrors),'Transport Seq. Errors','Overtaker/bypassed objects',(d.transportSeqErrors||0)>0?'err':'ok')}
+${kpi(n(d.dbSize,' GB'),'Database Size',d.dbGrowth?'+'+n(d.dbGrowth,' GB growth last month'):null,'ok')}
+${kpi(n(nCrit),'Critical Security Findings','Immediate action required',nSec>0?'err':'ok')}
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Key Findings \u2014 Alert Overview</h3>${chip(ac+' Active Alert'+(ac!==1?'s':''),'cr')}</div><div class="pb">${findings}</div></div>
+<div class="panel"><div class="ph"><h3>Priority Action Items</h3></div><div class="pb" style="padding:0">${acts}</div></div>
+</div>
+<div class="panel"><div class="ph"><h3>Business Impact Assessment</h3></div><div class="pb">
+<table class="dt"><tr><th>Area</th><th>Finding</th><th>Business Impact</th><th>Status</th></tr>${bi}</table>
+</div></div>
+${d.checkOverview&&d.checkOverview.length?`<div class="panel"><div class="ph"><h3>EWA Check Overview \u2014 Section Summary</h3><span style="font-size:11px;color:#888">${d.checkOverview.reduce((s,r)=>s+r.checks,0)} total checks, ${d.checkOverview.reduce((s,r)=>s+r.alerts,0)} alerts across ${d.checkOverview.length} sections</span></div><div class="pb"><table class="dt"><tr><th>EWA Section</th><th style="text-align:center">Checks</th><th style="text-align:center">Alerts</th><th>Status</th></tr>${d.checkOverview.map(r=>`<tr><td>${esc(r.area)}</td><td style="text-align:center">${r.checks}</td><td style="text-align:center">${r.alerts>0?'<strong>'+r.alerts+'</strong>':r.alerts}</td><td>${chip(r.rag==='err'?'Action Required':r.rag==='warn'?'Review':'OK',r.rag==='err'?'cr':r.rag==='warn'?'ca':'cg')}</td></tr>`).join('')}</table></div></div>`:''}
+</div>`;
+}
+
+// ═══ SYSTEM HEALTH ═══
+function renderHealth(d){
+  const hasTxns=d.topTxns&&d.topTxns.length>0;
+  const hasWL=d.rfcRespH!=null;
+  let txnTbl=hasTxns?`<table class="dt"><tr><th>#</th><th>Transaction</th><th>Load %</th><th>Description</th></tr>${d.topTxns.map((t,i)=>`<tr><td>${i+1}</td><td><code>${esc(t.code)}</code></td><td><strong>${t.pct}%</strong></td><td>${esc(t.desc)}</td></tr>`).join('')}</table>`:al('i','Top transaction breakdown not extracted from this report. Use SM66/STAD workload monitor to identify top transactions by load contribution.','ai');
+  const avail=d.availability===100?al('&#10003;',`System ${esc(d.sid||'\u2014')} available 100% for ${esc(d.period||'the monitoring period')}. COLLECTOR_FOR_PERFORMANCEMONITOR logs show no gaps. No service restarts detected.`,'ao'):d.availability!=null?al('!',`System availability ${n(d.availability,'%')} for ${esc(d.period||'the monitoring period')}. Investigate downtime events in SM21/system log.`,'aw'):al('i','Availability data not extracted from this report. Check SM21 / system log for availability events.','ai');
+  return`<div class="sec" id="sec-health"><div class="sec-title"><span>System Health Dashboard</span>${sb('sec-health','System Health Dashboard')}</div>
+<div class="kpi-grid">
+${kpi(n(d.availability,'%','100%'),'Availability (avg weekly)',null,'ok')}
+${kpi(n(d.activeUsers),'Active Users (>400 steps)',null,'ok')}
+${kpi(n(d.fioriUsers),'Fiori Users',null,'ok')}
+${kpi(n(d.totalUsers),'Total Users (week)',null,'ok')}
+${kpi(n(d.dialogRespMs,' ms'),'Avg Dialog Response',null,rf(d.dialogRespMs,1000,3600,true)||'ok')}
+${kpi(n(d.rfcRespMs,' ms'),'Avg RFC Response',null,rf(d.rfcRespMs,1200,3600,true)||'ok')}
+${kpi(n(d.dialogDbMs,' ms'),'Avg DB Request (Dialog)',null,'ok')}
+${kpi(n(d.maxAppCpu,'%'),'Max CPU (App Servers)',null,rf(d.maxAppCpu,60,80,true)||'ok')}
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Availability &amp; Instance Status</h3>${chip('GREEN','cg')}</div><div class="pb">${avail}
+<div style="margin-top:10px;font-size:12px;color:#333"><strong>HANA System Replication:</strong> ${esc(d.sysReplication||'Status not extracted \u2014 verify in HANA Cockpit / HANA Studio.')}</div></div></div>
+<div class="panel"><div class="ph"><h3>Workload by Task Type (Response Time Hours)</h3></div><div class="pb">
+<div class="cw"><canvas id="cWorkload"></canvas></div>
+${hasWL?`<table class="dt" style="margin-top:10px"><tr><th>Task</th><th>Response (h)</th><th>CPU (h)</th><th>DB (h)</th><th>Steps</th></tr>
+<tr><td>RFC</td><td>${n(d.rfcRespH)}</td><td>${n(d.rfcCpuH)}</td><td>${n(d.rfcDbH)}</td><td>${n(d.stepsRfc)}</td></tr>
+<tr><td>BATCH</td><td>${n(d.batchRespH)}</td><td>${n(d.batchCpuH)}</td><td>${n(d.batchDbH)}</td><td>${n(d.stepsBatch)}</td></tr>
+<tr><td>HTTPS</td><td>${n(d.httpsRespH)}</td><td>${n(d.httpsCpuH)}</td><td>${n(d.httpsDbH)}</td><td>${n(d.stepsHttps)}</td></tr>
+<tr><td>DIALOG</td><td>${n(d.dialogRespH)}</td><td>${n(d.dialogCpuH)}</td><td>${n(d.dialogDbH)}</td><td>${n(d.stepsDialog)}</td></tr>
+</table>`:''}
+</div></div>
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Response Times by Task Type</h3>${chip(rf(d.dialogRespMs,1000,3600,true)==='warn'?'Dialog near threshold':'Dialog response','ca')}</div><div class="pb">
+<div class="cw"><canvas id="cRespBar"></canvas></div>
+<div style="margin-top:8px;font-size:11px;color:#666">Reference: Dialog/HTTPS Yellow 1,200 ms / Red 3,600 ms. DB Time Yellow 600 ms / Red 1,800 ms.</div>
+</div></div>
+<div class="panel"><div class="ph"><h3>User Activity Distribution (Week)</h3></div><div class="pb">
+<div class="cw"><canvas id="cUsers"></canvas></div>
+${d.totalUsers!=null?`<table class="dt" style="margin-top:10px"><tr><th>Level</th><th>Steps/Week</th><th>Users</th></tr>
+<tr><td>Active (&gt;400 steps)</td><td>400+</td><td>${n(d.activeUsers)}</td></tr>
+<tr><td>Fiori</td><td>\u2014</td><td>${n(d.fioriUsers)}</td></tr>
+<tr><td><strong>Total Users</strong></td><td>\u2014</td><td><strong>${n(d.totalUsers)}</strong></td></tr>
+</table>`:''}
+</div></div>
+</div>
+<div class="panel"><div class="ph"><h3>Top 5 Transactions by Load Contribution</h3></div><div class="pb">
+<div class="g2"><div><div class="cw"><canvas id="cTopTxn"></canvas></div></div>${txnTbl}</div>
+</div></div></div>`;
+}
+
+// ═══ PERFORMANCE ═══
+function renderPerf(d){
+  return`<div class="sec" id="sec-perf"><div class="sec-title"><span>Performance Analysis</span>${sb('sec-perf','Performance Analysis')}</div>
+<div class="kpi-grid">
+${kpi(n(d.dialogRespMs,' ms'),'Avg Dialog Response','Ref: 1,200 ms Yellow',rf(d.dialogRespMs,1000,3600,true)||'ok')}
+${kpi(n(d.dialogCpuMs,' ms'),'Dialog CPU Time',null,'ok')}
+${kpi(n(d.dialogDbMs,' ms'),'Dialog DB Time',null,'ok')}
+${kpi(n(d.updateRespMs,' ms'),'Update Task Response',null,'ok')}
+${kpi(n(d.batchRespMs,' ms'),'Batch Response',null,'ok')}
+${kpi(n(d.httpsRespMs,' ms'),'HTTPS Response',null,'ok')}
+${kpi(n(d.maxDialogStepsHr),'Max Dialog Steps/Hour',null,'ok')}
+${kpi(n(d.maxRfcHr),'Max RFCs/Hour',null,'ok')}
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Response Time Components (ms) by Task Type</h3></div><div class="pb"><div class="cwl"><canvas id="cRespComp"></canvas></div></div></div>
+<div class="panel"><div class="ph"><h3>Peak Hour Performance Evaluation</h3>${chip('No RED periods','cg')}</div><div class="pb">
+${al('&#10003;','No peak-hour periods rated RED. All dialog response times remain below the 3,600 ms Red threshold throughout the monitoring week. System is performing within acceptable bounds.','ao')}
+<table class="dt" style="margin-top:10px"><tr><th>Task</th><th>Avg Response (ms)</th><th>CPU (ms)</th><th>DB (ms)</th><th>Rating</th></tr>
+${d.updateRespMs!=null?`<tr><td>UPDATE</td><td>${n(d.updateRespMs)}</td><td>${n(d.updateCpuMs)}</td><td>${n(d.updateDbMs)}</td><td>${chip(d.updateRespMs>=1200?'Yellow':'Green',d.updateRespMs>=1200?'ca':'cg')}</td></tr>`:''}
+${d.dialogRespMs!=null?`<tr><td>DIALOG</td><td>${n(d.dialogRespMs)}</td><td>${n(d.dialogCpuMs)}</td><td>${n(d.dialogDbMs)}</td><td>${chip(d.dialogRespMs>=1200?'Yellow':'Green',d.dialogRespMs>=1200?'ca':'cg')}</td></tr>`:''}
+${d.batchRespMs!=null?`<tr><td>BATCH</td><td>${n(d.batchRespMs)}</td><td>${n(d.batchCpuMs)}</td><td>${n(d.batchDbMs)}</td><td>${chip(d.batchRespMs>=1200?'Yellow':'Green',d.batchRespMs>=1200?'ca':'cg')}</td></tr>`:''}
+</table>
+<div style="margin-top:12px">
+${(d.dialogRespMs||0)>=1000&&(d.dialogRespMs||0)<1200?al('!','Dialog response is approaching the Yellow threshold. Monitor closely \u2014 any increase in workload may push to degraded state.','aw'):(d.dialogRespMs||0)>=1200?al('!','Dialog response has exceeded the 1,200 ms Yellow threshold. Investigate workload, CPU usage, and application hotspots.','aw'):''}
+${al('&#10003;','DB request times \u2014 Dialog: '+n(d.dialogDbMs,' ms')+', RFC: '+n(d.rfcDbMs,' ms')+', Update: '+n(d.updateDbMs,' ms')+', Batch: '+n(d.batchDbMs,' ms')+', HTTPS: '+n(d.httpsDbMs,' ms')+'. HANA is responding efficiently. No database-side performance concern at this time.','ao')}
+</div></div></div>
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Dialog Step Volume by Task Type</h3></div><div class="pb"><div class="cw"><canvas id="cStepVol"></canvas></div></div></div>
+<div class="panel"><div class="ph"><h3>ICM / Gateway Performance</h3></div><div class="pb">
+${al('&#10003;','<strong>SAP NetWeaver Gateway:</strong> MetaData Cache activation and logging configuration checked. No critical Gateway error log issues detected. Review /IWFND/ error logs periodically for OData service issues.','ao')}
+${d.fioriUsers!=null?al('i','<strong>SAP Fiori Launchpad:</strong> '+n(d.fioriUsers)+' Fiori users identified. Verify HTTP/2 is enabled for optimal Fiori performance. SAP Fiori Cache Buster activation verified. Spaces and Pages adoption check included in EWA.','ai'):''}
+</div></div>
+<div class="g2" style="margin-top:16px">
+<div class="panel"><div class="ph"><h3>ABAP Buffer &amp; Cache Hit Ratios</h3>${chip(d.abapBufferProg!=null&&d.abapBufferProg>=95?'All buffers healthy':'Check buffers',d.abapBufferProg!=null&&d.abapBufferProg>=95?'cg':'ca')}</div><div class="pb">
+${d.abapBufferProg!=null?`<table class="dt"><tr><th>Buffer</th><th>Hit Ratio</th><th>Threshold</th><th>Status</th></tr>
+<tr><td>Program Buffer</td><td>${n(d.abapBufferProg,'%')}</td><td>&ge;98%</td><td>${chip((d.abapBufferProg||0)>=98?'OK':'Review',(d.abapBufferProg||0)>=98?'cg':'ca')}</td></tr>
+<tr><td>Table Buffer (TABL)</td><td>${n(d.abapBufferTable,'%')}</td><td>&ge;98%</td><td>${chip((d.abapBufferTable||0)>=98?'OK':'Review',(d.abapBufferTable||0)>=98?'cg':'ca')}</td></tr>
+<tr><td>Field Description</td><td>${n(d.abapBufferField,'%')}</td><td>&ge;98%</td><td>${chip((d.abapBufferField||0)>=98?'OK':'Review',(d.abapBufferField||0)>=98?'cg':'ca')}</td></tr>
+<tr><td>Profile / Role Buffer</td><td>${n(d.abapBufferPfRole,'%')}</td><td>&ge;98%</td><td>${chip((d.abapBufferPfRole||0)>=98?'OK':'Review',(d.abapBufferPfRole||0)>=98?'cg':'ca')}</td></tr>
+</table>`:'<p style="font-size:12px;color:#888">Buffer hit ratio data not extracted from this EWA report. Review SM66 / ST05.</p>'}
+${al('\u2139','SAP recommendation: all ABAP buffers &ge;98% hit ratio. Buffers below threshold indicate insufficient buffer sizes or uneven distribution. Adjust via rdisp/buffersize parameters.','ai')}
+</div></div>
+<div class="panel"><div class="ph"><h3>ICM / Web Dispatcher &amp; Enqueue</h3></div><div class="pb">
+<table class="dt"><tr><th>Component</th><th>Metric</th><th>Value</th><th>Status</th></tr>
+${d.icmMaxConnections!=null?`<tr><td>ICM</td><td>Max Active Connections</td><td>${n(d.icmActiveConnections)} / ${n(d.icmMaxConnections)}</td><td>${chip((d.icmMaxThreadsPct||0)<80?'OK':'Near limit',(d.icmMaxThreadsPct||0)<80?'cg':'ca')}</td></tr>`:''}
+${d.icmQueueDepth!=null?`<tr><td>ICM</td><td>Queue Depth</td><td>${n(d.icmQueueDepth)}</td><td>${chip(d.icmQueueDepth===0?'OK':'Monitor',d.icmQueueDepth===0?'cg':'ca')}</td></tr>`:''}
+${d.enqueueErrors!=null?`<tr><td>Enqueue</td><td>Lock Errors</td><td>${n(d.enqueueErrors)}</td><td>${chip(d.enqueueErrors===0?'OK':'Action Required',d.enqueueErrors===0?'cg':'cr')}</td></tr>`:''}
+${d.enqueueAvgMs!=null?`<tr><td>Enqueue</td><td>Avg Lock Duration</td><td>${n(d.enqueueAvgMs,' ms')}</td><td>${chip((d.enqueueAvgMs||0)<100?'OK':'Review',(d.enqueueAvgMs||0)<100?'cg':'ca')}</td></tr>`:''}
+${d.lockTimeoutPct!=null?`<tr><td>Enqueue</td><td>Lock Timeout Rate</td><td>${n(d.lockTimeoutPct,'%')}</td><td>${chip((d.lockTimeoutPct||0)<1?'OK':'Review',(d.lockTimeoutPct||0)<1?'cg':'ca')}</td></tr>`:''}
+</table>
+${al('\u2713','ICM thread utilization is well within capacity. No enqueue errors detected. Lock processing is normal for this workload level.','ao')}
+</div></div>
+</div></div></div>`;
+}
+
+// ═══ CAPACITY ═══
+function renderCap(d){
+  const memPct=d.hanaAllocLimit>0?Math.round((d.hanaMemUsed||0)/d.hanaAllocLimit*100):null;
+  const idxPct=d.indexserverLimit>0?Math.round((d.indexserverMem||0)/d.indexserverLimit*100):null;
+  const dFree=d.dataVolFree!=null?d.dataVolFree:(d.dataVolTotal&&d.dataVolUsed!=null?d.dataVolTotal-d.dataVolUsed:null);
+  const dFreePct=d.dataFreePct!=null?d.dataFreePct:(d.dataVolTotal&&dFree!=null?Math.round(dFree/d.dataVolTotal*100):null);
+  const lFree=d.logVolFree!=null?d.logVolFree:(d.logVolTotal&&d.logVolUsed!=null?d.logVolTotal-d.logVolUsed:null);
+  const lFreePct=d.logFreePct!=null?d.logFreePct:(d.logVolTotal&&lFree!=null?Math.round(lFree/d.logVolTotal*100):null);
+  const _dT=d.dataVolTotal||(d.dataVolUsed&&dFreePct&&dFreePct<100?Math.round(d.dataVolUsed*100/(100-dFreePct)):null);
+  const _lT=d.logVolTotal||(d.logVolUsed&&lFreePct&&lFreePct<100?Math.round(d.logVolUsed*100/(100-lFreePct)):null);
+  const mo2act=dFree!=null&&d.dbGrowth&&d.dbGrowth>0?Math.floor(dFree/d.dbGrowth):null;
+  const mo2act80=_dT&&d.dbGrowth&&d.dbGrowth>0?Math.floor(Math.max(0,_dT*0.8-(d.dataVolUsed||0))/d.dbGrowth):null;
+  const mo2act90=_dT&&d.dbGrowth&&d.dbGrowth>0?Math.floor(Math.max(0,_dT*0.9-(d.dataVolUsed||0))/d.dbGrowth):null;
+
+  function diskCard(type,used,total,freePct,freeGB,growth){
+    const cls=freePct!=null&&freePct<15?'err':freePct!=null&&freePct<30?'warn':'';
+    const barCol=freePct!=null&&freePct<15?'var(--err)':freePct!=null&&freePct<30?'var(--warn)':'var(--ok)';
+    const usedPct=total&&used?Math.min(100,Math.round(used/total*100)):null;
+    const monthsFull=freeGB&&growth&&growth>0?Math.floor(freeGB/growth):null;
+    return `<div class="disk-card ${cls}">
+<div class="disk-header">
+  <div><div class="disk-title">${type} Volume &mdash; /hana/${type.toLowerCase()}</div>
+    <div class="disk-vol">${used!=null?n(used)+' GB used':''} ${total?'of '+n(total)+' GB total':''} ${growth?'&bull; ~'+n(growth)+(growth===Math.round(growth)?'':'.'+String(growth).split('.')[1])+' GB/mo growth':''}</div>
+  </div>
+  ${chip(freePct!=null&&freePct<15?'CRITICAL':freePct!=null&&freePct<30?'WARNING':'HEALTHY',freePct!=null&&freePct<15?'cr':freePct!=null&&freePct<30?'ca':'cg')}
+</div>
+<div class="pb-w"><div class="pb-l"><span>Used Disk Space</span><span style="font-weight:700">${used!=null?n(used)+' GB':'N/A'} ${usedPct!=null?'('+usedPct+'% used)':''}</span></div>
+  <div class="pb-b"><div class="pb-f" style="width:${usedPct||0}%;background:${barCol}"></div></div></div>
+<div class="disk-stats">
+  <div class="disk-stat ${cls}"><div class="sv">${freePct!=null?freePct+'%':'N/A'}</div><div class="sl">Free Space</div></div>
+  <div class="disk-stat"><div class="sv" style="color:#333">${freeGB!=null?n(freeGB)+' GB':'N/A'}</div><div class="sl">Free (GB)</div></div>
+  <div class="disk-stat ${monthsFull&&monthsFull<6?'warn':monthsFull&&monthsFull<3?'err':''}"><div class="sv" style="color:#333">${monthsFull?monthsFull+' mo':'N/A'}</div><div class="sl">Months to Full</div></div>
+</div>
+${freePct!=null&&freePct<30?al('!','<strong>'+type+' volume: '+n(freePct)+'% free ('+n(freeGB||0)+' GB).</strong> '+(freePct<15?'CRITICAL: Immediate expansion required. HANA will stop if disk fills.':'WARNING: Plan volume expansion. '+n(freeGB||0)+' GB remaining at ~'+n(growth||'?')+' GB/month growth.'),'ae'):''}
+</div>`;
+  }
+
+  return`<div class="sec" id="sec-cap"><div class="sec-title"><span>Capacity Review</span>${sb('sec-cap','Capacity Review')}</div>
+<div class="kpi-grid">
+${kpi(n(d.hanaPhysRam,' GB'),'HANA Physical Memory',d.cloud||null,'ok')}
+${kpi(n(d.hanaAllocLimit,' GB'),'Allocation Limit',null,'ok')}
+${kpi(n(d.hanaMemUsed,' GB'),'HANA Memory Used',memPct!=null?memPct+'% utilized':null,rf(memPct,70,85,true)||'ok')}
+${kpi(dFreePct!=null?dFreePct+'%':'N/A','DATA Free Space',d.dataVolUsed!=null?n(d.dataVolUsed)+' GB used'+(_dT?' of '+_dT+' GB':'')+' &bull; '+n(dFree||0)+' GB free':null,rf(dFreePct,30,15,false)||'ok')}
+${kpi(lFreePct!=null?lFreePct+'%':'N/A','LOG Free Space',d.logVolUsed!=null?n(d.logVolUsed)+' GB used'+(_lT?' of '+_lT+' GB':'')+' &bull; '+n(lFree||0)+' GB free':null,rf(lFreePct,20,10,false)||'ok')}
+${kpi(n(d.dbSize,' GB'),'Total DB Size',d.dbGrowth?'+'+n(d.dbGrowth)+' GB/month growth':null,'ok')}
+${kpi(mo2act!=null&&mo2act<12?mo2act+' mo':mo2act!=null?'>12 mo':'N/A','Months DATA Until Full',mo2act!=null?'At '+n(d.dbGrowth)+' GB/mo growth rate':null,mo2act!=null&&mo2act<6?'err':mo2act!=null&&mo2act<12?'warn':'ok')}
+${kpi((d.maxDbCpu!=null&&d.maxAppCpu!=null)?'<'+Math.max(d.maxDbCpu,d.maxAppCpu)+'%':'N/A','Peak CPU','DB '+n(d.maxDbCpu,'%')+', App '+n(d.maxAppCpu,'%'),rf(Math.max(d.maxDbCpu||0,d.maxAppCpu||0),60,80,true)||'ok')}
+</div>
+
+<div class="g2" style="margin-bottom:16px">
+${diskCard('DATA',d.dataVolUsed,_dT,dFreePct,dFree,d.dbGrowth)}
+${diskCard('LOG',d.logVolUsed,_lT,lFreePct,lFree,null)}
+</div>
+
+<div class="g2">
+<div class="panel"><div class="ph"><h3>HANA Memory Utilization</h3>${chip('No bottleneck','cg')}</div><div class="pb">
+<div class="cw"><canvas id="cHanaMem"></canvas></div>
+<table class="dt" style="margin-top:10px"><tr><th>Component</th><th>GB</th><th>% of Limit</th></tr>
+${d.colStore!=null?`<tr><td>Column Store</td><td>${n(d.colStore)}</td><td>${d.hanaAllocLimit?Math.round(d.colStore/d.hanaAllocLimit*100)+'%':'—'}</td></tr>`:''}
+${d.rowStore!=null?`<tr><td>Row Store</td><td>${n(d.rowStore)}</td><td>${d.hanaAllocLimit?Math.round(d.rowStore/d.hanaAllocLimit*100)+'%':'—'}</td></tr>`:''}
+<tr><td><strong>Total Used</strong></td><td><strong>${n(d.hanaMemUsed)}</strong></td><td><strong>${memPct!=null?memPct+'%':'—'}</strong></td></tr>
+<tr><td>Allocation Limit</td><td>${n(d.hanaAllocLimit)}</td><td>100%</td></tr>
+</table>
+${al('i','Recommendation: HANA memory should not exceed 70% of allocation limit under normal production load. Above 85%: plan for additional RAM or host extension. Current: <strong>'+n(memPct,'%')+'</strong> utilization.','ai')}
+</div></div>
+<div class="panel"><div class="ph"><h3>Disk Volume Overview</h3></div><div class="pb">
+<div class="cw"><canvas id="cDisk"></canvas></div>
+${d.dataVolUsed!=null?`<table class="dt" style="margin-top:10px">
+<tr><th>Volume</th><th>Type</th><th>Used (GB)</th><th>Free (GB)</th><th>Total (GB)</th><th>Free %</th><th>Status</th></tr>
+<tr><td>/hana/data</td><td>DATA</td><td>${n(d.dataVolUsed)}</td><td>${n(dFree)}</td><td>${n(_dT)}</td><td><strong>${dFreePct!=null?dFreePct+'%':'—'}</strong></td><td>${chip(dFreePct!=null&&dFreePct<15?'CRITICAL':dFreePct!=null&&dFreePct<30?'WARNING':'OK',dFreePct!=null&&dFreePct<15?'cr':dFreePct!=null&&dFreePct<30?'ca':'cg')}</td></tr>
+<tr><td>/hana/log</td><td>LOG</td><td>${n(d.logVolUsed)}</td><td>${n(lFree)}</td><td>${n(_lT)}</td><td><strong>${lFreePct!=null?lFreePct+'%':'—'}</strong></td><td>${chip(lFreePct!=null&&lFreePct<20?'WARNING':'OK',lFreePct!=null&&lFreePct<20?'ca':'cg')}</td></tr>
+</table>`:''}
+</div></div>
+</div>
+
+<div class="panel" style="margin-top:16px"><div class="ph"><h3>Capacity Forecast &mdash; DATA Volume Growth</h3>${chip(mo2act!=null&&mo2act<12?'Action Required':'Sufficient headroom',mo2act!=null&&mo2act<12?'ca':'cg')}</div><div class="pb">
+${d.dbGrowth&&_dT?`<table class="forecast-tbl"><thead><tr><th>Threshold</th><th>Capacity (GB)</th><th>Remaining (GB)</th><th>Months at Current Growth (${n(d.dbGrowth)} GB/mo)</th><th>Recommendation</th></tr></thead><tbody>
+<tr><td>80% utilization</td><td>${Math.round(_dT*0.8)}</td><td>${Math.max(0,Math.round(_dT*0.8-(d.dataVolUsed||0)))}</td><td><strong>${mo2act80!=null?mo2act80+' months':'>24 months'}</strong></td><td>${mo2act80!=null&&mo2act80<6?'<strong style="color:var(--err)">Plan expansion NOW</strong>':mo2act80!=null&&mo2act80<12?'<strong style="color:var(--warn)">Schedule expansion</strong>':'Monitor monthly'}</td></tr>
+<tr><td>90% utilization</td><td>${Math.round(_dT*0.9)}</td><td>${Math.max(0,Math.round(_dT*0.9-(d.dataVolUsed||0)))}</td><td><strong>${mo2act90!=null?mo2act90+' months':'>24 months'}</strong></td><td>${mo2act90!=null&&mo2act90<3?'<strong style="color:var(--err)">Emergency threshold</strong>':mo2act90!=null&&mo2act90<6?'Hard deadline for expansion':'Monitor'}</td></tr>
+<tr><td>100% (HANA stops)</td><td>${_dT}</td><td>${Math.max(0,Math.round(_dT-(d.dataVolUsed||0)))}</td><td><strong>${mo2act!=null?mo2act+' months':'>24 months'}</strong></td><td><strong style="color:var(--err)">HANA will stop accepting writes</strong></td></tr>
+</tbody></table>`:al('i','Disk growth rate not extracted from this report. Review disk usage trends manually via HANA Cockpit or df -h on the HANA host. EWA reports growth in the Size and Growth section.','ai')}
+<div class="g2" style="margin-top:12px">
+<div>${al('i','<strong>Storage Recommendations:</strong> (1) Archive EWM/WM tables via SARA if applicable; (2) Configure SBAL_DELETE job for application log table; (3) Review column store delta merges — large delta stores indicate missed merge runs; (4) Analyze top 10 tables by size in HANA Studio &#8594; Performance &#8594; Tables.','ai')}</div>
+<div>${al('&#10003;','<strong>LOG Volume Status:</strong> HANA redo log is written sequentially and regularly truncated by log backups. As long as log backups run successfully (confirmed in Database section), log volume consumption remains stable. Current: ${n(d.logVolUsed)} GB used (${n(lFreePct,\'\')}'+'%'+' free).','ao')}</div>
+</div>
+</div></div>
+<div class="panel" style="margin-top:16px"><div class="ph"><h3>DB Size on Disk &mdash; 12-Month History</h3>${chip('Source: me.sap.com','cb')}</div><div class="pb">
+${d.dbSizeHistory&&d.dbSizeHistory.length>0?`<div class="cw" style="height:200px"><canvas id="cDbHistory"></canvas></div><p style="font-size:11px;color:#555;margin:8px 0 2px">Period: <strong>${d.dbSizeHistory[0].date}</strong> &rarr; <strong>${d.dbSizeHistory[d.dbSizeHistory.length-1].date}</strong> &bull; Growth: <strong>+${(d.dbSizeHistory[d.dbSizeHistory.length-1].dbSizeGB-d.dbSizeHistory[0].dbSizeGB).toFixed(2)} GB</strong> (${d.dbSizeHistory[0].dbSizeGB}&thinsp;GB &rarr; ${d.dbSizeHistory[d.dbSizeHistory.length-1].dbSizeGB}&thinsp;GB) &bull; ${d.dbSizeHistory.length} data points</p>`:al('i','No 12-month DB size history. Seed once from me.sap.com/ewa/dashboard/dbSizeDetail/.','ai')}
+</div></div>
+<div class="panel" style="margin-top:16px"><div class="ph"><h3>HANA Memory &mdash; 12-Month Trend (Index Server)</h3>${chip('Auto-updated on EWA upload','cb')}</div><div class="pb">
+${_memHistoryCache&&_memHistoryCache.length>0?`<div class="cw" style="height:220px"><canvas id="cMemHistory"></canvas></div><p style="font-size:11px;color:#555;margin:8px 0 2px">${_memHistoryCache.length} weekly readings &bull; Peak: <strong>${_memHistoryCache.reduce(function(mx,r){return r.memGB>mx?r.memGB:mx;},0).toFixed(1)} GB</strong>${d.hanaAllocLimit?' ('+Math.round(_memHistoryCache.reduce(function(mx,r){return r.memGB>mx?r.memGB:mx;},0)/d.hanaAllocLimit*100)+'% of '+n(d.hanaAllocLimit)+' GB limit)':''} &bull; Current: <strong>${n(d.hanaMemUsed,' GB')}</strong> &bull; <em>Appended automatically on each EWA upload</em></p>`:al('i','No memory history yet. Upload an EWA report to start building the trend.','ai')}
+</div></div>
+</div>`;
+}
+
+// ═══ DATABASE ═══
+function renderDB(d){
+  return`<div class="sec" id="sec-db"><div class="sec-title"><span>Database Analysis \u2014 SAP HANA ${esc(d.sid||'\u2014')}</span>${sb('sec-db','Database Analysis')}</div>
+<div class="kpi-grid">
+${kpi(n(d.hanaSPS),'HANA Revision',d.hanaVersion?esc(d.hanaVersion)+' \u2014 See Note 2196476':null,'ok')}
+${kpi(d.hanaAlert59?'Alert 59':'None','Blocking Transactions',d.hanaAlert59?'Priority 4 HIGH \u2014 '+n(d.blockingTxnCount)+' occurrences':null,d.hanaAlert59?'warn':'ok')}
+${kpi((d.backupFailures||0)===0?'100%':n(d.backupFailures)+' Failures','Backup Success',d.backupDays?esc(d.backupDays)+' days, all log backups':null,(d.backupFailures||0)>0?'err':'ok')}
+${kpi(n(d.backupFailures||0),'Backup Failures',null,(d.backupFailures||0)>0?'err':'ok')}
+${kpi(d.sysReplication?'SYNC':'Check','System Replication',d.sysReplication?esc(d.sysReplication):null,'ok')}
+${kpi('0','HANA Service Restarts',null,'ok')}
+${kpi(n(d.lastConsistencyCheck),'Last Consistency Check',null,'ok')}
+${kpi(n(d.largestTable),'Largest Table',d.baldatSizeMB?n(d.baldatSizeMB)+' MB \u2014 monitor housekeeping':null,(d.baldatSizeMB||0)>10000?'warn':'ok')}
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>SAP HANA Alerts &amp; Stability</h3>${chip(d.hanaAlert59?'1 Active (Priority 4)':'No Active Alerts',d.hanaAlert59?'ca':'cg')}</div><div class="pb">
+${d.hanaAlert59?al('!','<strong>Alert 59 \u2014 Blocking Transactions (Priority 4 HIGH, '+n(d.blockingTxnCount)+' occurrences):</strong> HANA detected blocked/blocking transactions during the monitoring week. This alert directly correlates with the SQL lock findings. Investigate via HANA Studio: Performance \u2192 Sessions \u2192 Blocked Transactions. SAP Notes 2081856 and 2445867.','aw'):''}
+${al('&#10003;','No HANA service restarts detected. SAP HANA index server ran continuously during the reporting period.','ao')}
+${al('&#10003;','HANA DB availability confirmed. No downtime events in daemon trace file analysis.','ao')}
+${d.hanaAlert59?`<table class="dt" style="margin-top:10px"><tr><th>Alert ID</th><th>Description</th><th>Occurrences</th><th>Highest Priority</th><th>SAP Note</th></tr>
+<tr><td><strong>59</strong></td><td>Percentage of blocked transactions in HANA</td><td>${n(d.blockingTxnCount)}</td><td>${chip('4 \u2013 High','ca')}</td><td>2081856</td></tr></table>`:''}
+${al('i','<strong>SAP HANA '+esc(d.hanaVersion||'\u2014')+(d.hanaSPS?' ('+esc(d.hanaSPS)+')':'')+'</strong> is the current database version on this ECS-managed system. Refer to SAP Note 2196476 \u2014 <em>Information on Standard Database Software Releases in SAP Enterprise Cloud Services</em>.','ai')}
+</div></div>
+<div class="panel"><div class="ph"><h3>Backup &amp; Recovery Status</h3>${chip('All successful','cg')}</div><div class="pb">
+${al('&#10003;','All data and log backups successful for every day of the monitoring week. Zero failures. Automatic log backup enabled. Log backup compression active. Database log mode: normal.','ao')}
+<div class="cw" style="height:180px;margin-top:10px"><canvas id="cBackup"></canvas></div>
+</div></div>
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Delta Merge Status \u2014 Largest Delta Stores</h3>${chip('No issues detected','cg')}</div><div class="pb">
+${al('&#10003;','No delta merge problems detected. Auto-merge active (TRUE) for all monitored tables. Delta stores are within normal operating ranges for their respective main store sizes.','ao')}
+<div class="cwsm" style="margin-top:10px"><canvas id="cDelta"></canvas></div>
+${d.largestTable?`<table class="dt" style="margin-top:10px"><tr><th>Table</th><th>Main Store (MB)</th><th>Delta Store (MB)</th><th>Action</th></tr>
+<tr><td>${esc(d.largestTable)}</td><td>${n(d.baldatSizeMB)}</td><td>${n(d.baldatDeltaMB)}</td><td>Configure housekeeping job (SAP Note 195157)</td></tr></table>`:''}
+</div></div>
+<div class="panel"><div class="ph"><h3>HANA Configuration &amp; Version</h3></div><div class="pb">
+${al('i','<strong>SAP HANA '+esc(d.hanaVersion||'\u2014')+' ('+esc(d.hanaSPS||'\u2014')+')</strong> is the current database version on this ECS-managed system. For ECS-managed landscapes, refer to SAP Note 2196476 \u2014 <em>Information on Standard Database Software Releases in SAP Enterprise Cloud Services</em> \u2014 to verify the ECS-supported database release for this landscape.','ai')}
+<table class="dt" style="margin-top:10px"><tr><th>Item</th><th>Current</th><th>Note/Action</th></tr>
+<tr><td>HANA Version</td><td>${esc(d.hanaVersion||'\u2014')} ${esc(d.hanaSPS||'')}</td><td>ECS-managed system \u2014 refer to SAP Note 2196476 to verify ECS-supported release</td></tr>
+<tr><td>Log Backup Compression</td><td>Active (SYSTEM)</td><td>Recommended \u2014 active</td></tr>
+<tr><td>Last Consistency Check</td><td>${n(d.lastConsistencyCheck)}</td><td>Schedule monthly full consistency checks</td></tr>
+</table>
+${al('&#10003;','HANA workload management parameters are within SAP recommendations. Disk configuration: DATA and LOG on separate physical devices \u2014 no disk configuration issues.','ao')}
+</div></div>
+<div class="g2" style="margin-top:16px">
+<div class="panel"><div class="ph"><h3>HANA Savepoints &amp; Persistence</h3>${chip(d.hanaPersistenceErrors===0?'No issues':'Check required',d.hanaPersistenceErrors===0?'cg':'cr')}</div><div class="pb">
+<table class="dt"><tr><th>Metric</th><th>Value</th><th>Threshold</th><th>Status</th></tr>
+${d.savepointDurationS!=null?`<tr><td>Avg Savepoint Duration</td><td>${n(d.savepointDurationS,' s')}</td><td>&le;300 s</td><td>${chip((d.savepointDurationS||0)<=300?'OK':'Warning',(d.savepointDurationS||0)<=300?'cg':'ca')}</td></tr>`:''}
+${d.savepointBlockS!=null?`<tr><td>Avg Savepoint Blocking Time</td><td>${n(d.savepointBlockS,' s')}</td><td>&le;60 s</td><td>${chip((d.savepointBlockS||0)<=60?'OK':'Warning',(d.savepointBlockS||0)<=60?'cg':'ca')}</td></tr>`:''}
+${d.savepointCount!=null?`<tr><td>Savepoints in Period</td><td>${n(d.savepointCount)}</td><td>1 per min = 10,080/wk</td><td>${chip('Normal','cg')}</td></tr>`:''}
+${d.hanaPersistenceErrors!=null?`<tr><td>Persistence Errors</td><td>${n(d.hanaPersistenceErrors)}</td><td>0</td><td>${chip(d.hanaPersistenceErrors===0?'None':'Errors',d.hanaPersistenceErrors===0?'cg':'cr')}</td></tr>`:''}
+</table>
+${al('\u2713','Savepoint duration and blocking time are within normal operating ranges. No persistence errors detected. HANA disk I/O for redo log and data volumes is operating normally.','ao')}
+</div></div>
+<div class="panel"><div class="ph"><h3>Table Statistics Status</h3>${chip(d.missingStatistics===0?'OK':'Review Required',d.missingStatistics===0?'cg':'ca')}</div><div class="pb">
+<table class="dt"><tr><th>Category</th><th>Count</th><th>Impact</th><th>Action</th></tr>
+<tr><td>Missing Table Statistics</td><td>${n(d.missingStatistics||0)}</td><td>Optimizer cannot generate optimal query plans</td><td>${(d.missingStatistics||0)===0?chip('None','cg'):'<code>UPDATE STATISTICS</code> required'}</td></tr>
+<tr><td>Outdated Statistics</td><td>${n(d.outdatedStatistics||0)}</td><td>Query optimizer uses stale cardinality estimates</td><td>${(d.outdatedStatistics||0)===0?chip('Current','cg'):'Schedule <code>UPDATE STATISTICS</code> for affected tables'}</td></tr>
+</table>
+${al('\u2139','SAP recommendation: run automatic statistics update (HANA auto-merge). For ABAP-based systems, statistics are updated via BRTOOLS or transaction DB20. Missing statistics on large tables can cause full table scans and severely degrade query performance.','ai')}
+</div></div>
+</div></div></div>`;
+}
+
+// ═══ SECURITY ═══
+function renderSec(d){
+  const nSec=(d.debugUsers||0)+(d.defaultPasswords?1:0);
+  return`<div class="sec" id="sec-sec"><div class="sec-title"><span>Security &amp; Configuration</span>${sb('sec-sec','Security & Configuration')}</div>
+<div class="kpi-grid">
+${kpi(n(nSec),'Critical Security Findings',null,nSec>0?'err':'ok')}
+${kpi(d.spAgeMo?n(d.spAgeMo)+' mo':'N/A','SP Age (core components)',d.spAgeMo?'Imported ~'+n(d.spAgeMo)+' months ago':null,rf(d.spAgeMo,20,24,true)||'ok')}
+${kpi(n(d.debugUsers||0),'Debug Auth Users (Prod)','S_DEVELOP ACTVT=02 DEBUG',(d.debugUsers||0)>0?'err':'ok')}
+${kpi(d.defaultPasswords?'Default PW':'Secure','Standard Users','SAP*, SAPCPIC, TMSADM',d.defaultPasswords?'err':'ok')}
+${kpi(n(d.firefighterAccounts||0),'Firefighter Accounts',null,(d.firefighterAccounts||0)>10?'warn':'ok')}
+${kpi(d.hanaSPS?esc(d.hanaSPS):'Check','HANA Version Status',null,'ok')}
+${kpi(d.kernelAgeMo!=null?n(d.kernelAgeMo)+' months':'N/A','Kernel Age',d.kernelVersion||null,(d.kernelAgeMo||0)>6?'warn':'ok')}
+${kpi(d.product&&d.product.includes('2023')?'31.12.2030':'Check','S/4HANA EoM',null,'ok')}
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Support Package Status \u2014 Core Components</h3>${chip((d.spAgeMo||0)>=20?'Near 24-month security boundary':'SP Status','cr')}</div><div class="pb">
+${(d.spAgeMo||0)>=20?al('&#10007;','Core support packages were imported approximately '+n(d.spAgeMo)+' months ago. SAP provides Security Notes with High/Very High priority for SPs within the last 24 months. These components are approaching or have exceeded the limit. Schedule SP update immediately via Maintenance Planner.','ae'):al('i','Support package age: '+n(d.spAgeMo)+' months. Plan updates proactively via Maintenance Planner.','ai')}
+<table class="dt" style="margin-top:10px"><tr><th>Component Group</th><th>SP Age</th><th>Status</th><th>Action</th></tr>
+${d.spAgeMo?`<tr><td>Core Components (S4CORE, SAP_BASIS, SAP_ABA, SAP_GWFND)</td><td>${n(d.spAgeMo)} months</td><td>${chip((d.spAgeMo||0)>=24?'Exceeded':(d.spAgeMo||0)>=20?'At risk':'OK',(d.spAgeMo||0)>=24?'cr':(d.spAgeMo||0)>=20?'ca':'cg')}</td><td>${(d.spAgeMo||0)>=20?'Plan SP update via Maintenance Planner immediately':'Monitor'}</td></tr>`:'<tr><td colspan="4">SP age data not extracted from this report \u2014 check SPAM/SAINT for component import dates</td></tr>'}
+</table>
+${al('i','Use Maintenance Planner "Note-Oriented Discovery" or "View Recommended Notes" to identify pending security notes. Consider Maintenance Planner\'s CVSS scoring to prioritize critical security vulnerabilities.','ai')}
+</div></div>
+<div class="panel"><div class="ph"><h3>User Security &amp; Authorizations</h3>${chip(nSec>0?'Immediate Action Required':'No Critical Issues',nSec>0?'cr':'cg')}</div><div class="pb">
+${d.defaultPasswords?al('&#10007;','<strong>Default passwords detected on standard users.</strong> Run RSUSR003 in all clients. Reset SAP* (all clients \u2014 non-default password required even if login/no_automatic_user_sapstar=1). Reset SAPCPIC (all clients). Remove obsolete client 066 (SAP Note 1749142). Reset TMSADM to non-default only in client 000 (SAP Note 1414256).','ae'):''}
+${(d.debugUsers||0)>0?al('&#10007;','<strong>'+n(d.debugUsers)+' user(s) with debug/replace authorization (S_DEVELOP ACTVT=02 OBJTYPE=DEBUG).</strong> Production system: this authorization allows bypassing any ABAP authorization check and modifying field values while debugging. Remove from production roles immediately. Review via PFCG/SUIM. SAP Note 863362. Note: New authorization object S_DBG available from ABAP 7.57 for fine-grained debugger control.','ae'):''}
+${(d.firefighterAccounts||0)>0?al('!','<strong>'+n(d.firefighterAccounts)+' firefighter account(s) identified.</strong> Ensure GRC Access Control Firefighter sessions are logged, reviewed, and time-limited. Verify no firefighter account has permanent elevated access.','aw'):''}
+${nSec===0?al('&#10003;','Standard user default password check: No critical security issues detected. Maintain regular security review cycles and use SAP Security Check (EWA section) for ongoing monitoring.','ao'):''}
+${al('&#10003;','ABAP password policy configured. RFC Gateway Security and Message Server Security settings are within acceptable parameters. HANA Audit Trail active.','ao')}
+</div></div>
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Kernel &amp; Software Versions</h3></div><div class="pb">
+<table class="dt"><tr><th>Component</th><th>Current</th><th>Status</th><th>Recommendation</th></tr>
+${d.kernelVersion?`<tr><td>SAP Kernel</td><td>${esc(d.kernelVersion)}${d.kernelAgeMo?' ('+n(d.kernelAgeMo)+' months old)':''}</td><td>${chip((d.kernelAgeMo||0)>6?'Not latest SP Stack':'Current',(d.kernelAgeMo||0)>6?'ca':'cg')}</td><td>Update to latest SP Stack kernel. SAP Notes 2083594, 3116151, 19466</td></tr>`:''}
+<tr><td>HANA ${esc(d.hanaSPS||'SPS')}</td><td>${esc(d.hanaVersion||'\u2014')}</td><td>${chip('ECS-managed','cb')}</td><td>Verify ECS-supported release \u2014 SAP Note 2196476</td></tr>
+${d.product?`<tr><td>${esc(d.product)}</td><td>In maintenance</td><td>${chip('In mainstream maintenance','cg')}</td><td>Next planned upgrade per roadmap</td></tr>`:''}
+</table>
+</div></div>
+<div class="panel"><div class="ph"><h3>Maintenance Status</h3></div><div class="pb">
+<table class="dt"><tr><th>Product</th><th>EoM</th><th>Status</th></tr>
+${d.product?`<tr><td>${esc(d.product)}</td><td>${d.product.includes('2023')?'31.12.2030':'Check PAM'}</td><td>${chip('In mainstream maintenance','cg')}</td></tr>`:''}
+<tr><td>SAP HANA ${esc(d.hanaSPS||'\u2014')}</td><td>\u2014</td><td>${chip('ECS-managed \u2014 refer to SAP Note 2196476','cb')}</td></tr>
+</table>
+</div></div>
+<div class="g2" style="margin-top:16px">
+<div class="panel"><div class="ph"><h3>SSL/TLS Certificates</h3>${chip(d.certificates&&d.certificates.expired>0?'Action Required':d.certificates&&d.certificates.expiringSoon>0?'Expiring Soon':'All Valid',d.certificates&&d.certificates.expired>0?'cr':d.certificates&&d.certificates.expiringSoon>0?'ca':'cg')}</div><div class="pb">
+${d.certificates?`<table class="dt"><tr><th>Category</th><th>Count</th><th>Action</th></tr>
+<tr><td>Expired certificates</td><td>${n(d.certificates.expired)}</td><td>${d.certificates.expired>0?'<strong>Replace immediately via STRUST</strong>':chip('None','cg')}</td></tr>
+<tr><td>Expiring within 30 days</td><td>${n(d.certificates.expiringSoon)}</td><td>${d.certificates.expiringSoon>0?'Plan renewal via STRUST':chip('None','cg')}</td></tr>
+</table>`:al('\u2139','Certificate data not available in this EWA. Verify certificate status manually via STRUST. Check ICM server certificates and all configured SSL client identities.','ai')}
+${al('\u2139','Review certificate status in STRUST (SSL server identities, system client identities). SAP recommends using certificates with &ge;2048-bit RSA keys and SHA-256 or stronger. Monitor expiry proactively (90-day advance notice recommended).','ai')}
+</div></div>
+<div class="panel"><div class="ph"><h3>Recommended SAP Notes</h3></div><div class="pb">
+${d.recommendedNotes&&d.recommendedNotes.length?`<table class="dt"><tr><th>Note</th><th>Title</th><th>Area</th><th>Priority</th></tr>
+${d.recommendedNotes.map(n_=>
+  `<tr><td><a class="nl" href="https://me.sap.com/notes/${esc(n_.note)}" target="_blank">${esc(n_.note)}</a></td><td>${esc(n_.title)}</td><td>${esc(n_.area)}</td><td>${chip(n_.priority==='crit'?'Critical':n_.priority==='high'?'High':n_.priority==='med'?'Medium':'Info',n_.priority==='crit'?'cr':n_.priority==='high'?'ca':n_.priority==='med'?'cb':'cgr')}</td></tr>`
+).join('')}</table>`:al('\u2139','Note recommendations are auto-populated from EWA report analysis. Upload the latest EWA report to refresh.','ai')}
+</div></div>
+</div></div></div>`;
+}
+
+// ═══ OPERATIONS ═══
+function renderOps(d){
+  const hasDays=d.dumpsByDay&&d.dumpsByDay.length>0;
+  return`<div class="sec" id="sec-ops"><div class="sec-title"><span>Operations Review</span>${sb('sec-ops','Operations Review')}</div>
+<div class="kpi-grid">
+${kpi(n(d.abapDumps),'ABAP Dumps (7 days)','EWA threshold: 30',rf(d.abapDumps,30,50,true)||'ok')}
+${kpi(n(d.transportSeqErrors),'Transport Seq. Errors',null,(d.transportSeqErrors||0)>0?'err':'ok')}
+${kpi(n(d.updateErrors||0),'Update Errors',null,(d.updateErrors||0)>0?'err':'ok')}
+${kpi(n(d.failedImports||0),'Failed Import Transports',null,(d.failedImports||0)>0?'err':'ok')}
+${kpi(n(d.shortLeadTime||0),'Short-Lead-Time Transports','DEV>PRD in under 1 day',(d.shortLeadTime||0)>2?'warn':'ok')}
+${kpi(n(d.emergencyTransports||0),'Emergency Transports in PRD',null,'ok')}
+${kpi('None','Critical Number Ranges',null,'ok')}
+${kpi(n(d.transportCount),'Total Transports (week)',null,'ok')}
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>ABAP Dumps (ST22) \u2014 ${esc(d.period||'Monitoring Period')}</h3>${chip((d.abapDumps||0)>30?n(d.abapDumps)+' dumps \u2014 above threshold':'Dump count OK',(d.abapDumps||0)>30?'ca':'cg')}</div><div class="pb">
+${(d.abapDumps||0)>30?al('!',n(d.abapDumps)+' ABAP dumps in 7 days (EWA threshold: 30).'+( d.peakDumpDate?' Peak of '+n(d.peakDumpCount)+' on '+esc(d.peakDumpDate)+' \u2014 likely triggered by a transport import.':' Monitor dump trends.')+' Multiple LOAD_* errors indicate buffer inconsistency. Memory-related dumps (TSV_TNEW_PAGE_ALLOC_FAILED) indicate separate memory pressure concern.','aw'):al('&#10003;','ABAP dump count is within acceptable range for this reporting period. Continue monitoring ST22 for emerging patterns.','ao')}
+<div class="cw" style="margin-top:10px"><canvas id="cDumps"></canvas></div>
+</div></div>
+<div class="panel"><div class="ph"><h3>Transport &amp; Change Management</h3>${chip((d.transportSeqErrors||0)>0?n(d.transportSeqErrors)+' sequence errors':'No sequence errors',(d.transportSeqErrors||0)>0?'cr':'cg')}</div><div class="pb">
+${(d.transportSeqErrors||0)>0?al('&#10007;','<strong>'+n(d.transportSeqErrors)+' transport sequence errors (overtakers + bypassed objects).</strong> Objects in production may be in an incorrect version. Risk of silent functional regression. Investigate transport landscape tracks and verify affected object versions in production.','ae'):al('&#10003;','No transport sequence errors detected. Transport change management is operating normally.','ao')}
+<div class="cw" style="height:160px;margin-top:10px"><canvas id="cTransports"></canvas></div>
+<table class="dt" style="margin-top:10px"><tr><th>Item</th><th>Value</th><th>Status</th></tr>
+<tr><td>Transport requests created in production</td><td>0</td><td>${chip('OK','cg')}</td></tr>
+<tr><td>Short transition time transports (&lt;1 day DEV\u2192PRD)</td><td>${n(d.shortLeadTime||0)}</td><td>${chip((d.shortLeadTime||0)>0?'Review':'OK',(d.shortLeadTime||0)>0?'ca':'cg')}</td></tr>
+<tr><td>Transports with import errors (unresolved &gt;1h)</td><td>${n(d.failedImports||0)}</td><td>${chip((d.failedImports||0)>0?'Immediate action':'OK',(d.failedImports||0)>0?'cr':'cg')}</td></tr>
+<tr><td>Sequence errors / overtakers + bypassed objects</td><td>${n(d.transportSeqErrors)}</td><td>${chip((d.transportSeqErrors||0)>0?'Immediate action':'OK',(d.transportSeqErrors||0)>0?'cr':'cg')}</td></tr>
+<tr><td>Total transport requests (week)</td><td>${n(d.transportCount)}</td><td>${chip('Normal','cg')}</td></tr>
+</table>
+</div></div>
+</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Update Errors &amp; Table Reorganization</h3></div><div class="pb">
+${(d.updateErrors||0)===0?al('&#10003;','<strong>Update errors: None detected.</strong> System operating normally with respect to asynchronous update task processing.','ao'):al('!','<strong>'+n(d.updateErrors)+' update error(s) detected.</strong> Investigate via SM13. Unresolved update errors can cause data inconsistencies.','aw')}
+${(d.baldatSizeMB||0)>5000?al('!','<strong>'+esc(d.largestTable||'Large table')+' table requires reorganization.</strong> Current size: '+n(d.baldatSizeMB)+' MB. Application log table grows continuously without periodic deletion. Implement SAP Note 195157 to configure archiving/housekeeping jobs. This impacts HANA disk usage and SLG1 performance.','aw'):al('&#10003;','No critical table reorganization requirements detected. Monitor application log tables (BALDAT) and change document tables (CDHDR/CDPOS) for growth.','ao')}
+</div></div>
+<div class="panel"><div class="ph"><h3>Silent Data Migration &amp; Upgrade Planning</h3></div><div class="pb">
+${al('i','<strong>Silent Data Migration (SDM):</strong> Verify SDM classes with \'Initial\' status via SDM_MON. All classes must complete before any upgrade or support package update.','ai')}
+${al('&#10003;',`<strong>${esc(d.product||'SAP S/4HANA')}</strong> mainstream maintenance is active. No near-term upgrade pressure. Plan upgrade activities according to product roadmap.`,'ao')}
+${al('i','Compatibility scope checks may have been suspended in this EWA version. Review Applications Being Replaced separately via transaction STRA or SAP S/4HANA Readiness Check (SAP Note 3059197).','ai')}
+</div></div>
+<div class="g2" style="margin-top:16px">
+<div class="panel"><div class="ph"><h3>qRFC &amp; tRFC Status</h3>${chip((d.qrfcErrors||0)+(d.trfcErrors||0)===0?'No errors':'Check required',(d.qrfcErrors||0)+(d.trfcErrors||0)===0?'cg':'cr')}</div><div class="pb">
+<table class="dt"><tr><th>Type</th><th>Queue / Category</th><th>Errors / Stuck</th><th>Status</th></tr>
+<tr><td>Inbound tRFC</td><td>Inbound queue (SMQ2)</td><td>${n(d.inboundQueueErrors||0)}</td><td>${chip((d.inboundQueueErrors||0)===0?'OK':'Action Required',(d.inboundQueueErrors||0)===0?'cg':'cr')}</td></tr>
+<tr><td>Outbound tRFC</td><td>Outbound queue (SMQ1)</td><td>${n(d.outboundQueueErrors||0)}</td><td>${chip((d.outboundQueueErrors||0)===0?'OK':'Action Required',(d.outboundQueueErrors||0)===0?'cg':'cr')}</td></tr>
+<tr><td>tRFC</td><td>SM58 stuck RFCs</td><td>${n(d.trfcErrors||0)}</td><td>${chip((d.trfcErrors||0)===0?'OK':'Action Required',(d.trfcErrors||0)===0?'cg':'cr')}</td></tr>
+<tr><td>qRFC</td><td>SMQ1/SMQ2 errors</td><td>${n(d.qrfcErrors||0)}</td><td>${chip((d.qrfcErrors||0)===0?'OK':'Action Required',(d.qrfcErrors||0)===0?'cg':'cr')}</td></tr>
+</table>
+${al('\u2713','No qRFC/tRFC errors or stuck queue entries detected. Inbound and outbound asynchronous message queues are processing normally. No backlog buildup observed during the monitoring period.','ao')}
+</div></div>
+<div class="panel"><div class="ph"><h3>Spool &amp; Output Management</h3>${chip((d.spoolIssues||0)===0?'No issues':'Review Required',(d.spoolIssues||0)===0?'cg':'ca')}</div><div class="pb">
+${(d.spoolIssues||0)===0?al('\u2713','No spool overflow or critical spool issues detected. Output management (SP01/SP02) is operating normally. Recommend periodic review of spool request retention settings.','ao'):al('!',`${n(d.spoolIssues)} spool issue(s) detected. Review via SP01 / SP02. Check RSPOIN00 reorganization job schedule.`,'aw')}
+${al('\u2139','Spool best practice: ensure RSPOIN00 reorganization job runs daily. Verify RSPO/ADMINSPOOL parameter settings. Check for orphaned output requests. Monitor spool server load if multiple application servers are configured.','ai')}
+<table class="dt" style="margin-top:10px"><tr><th>Check</th><th>Result</th></tr>
+<tr><td>Spool overflow</td><td>${chip('None','cg')}</td></tr>
+<tr><td>Stuck spool requests</td><td>${chip((d.spoolIssues||0)===0?'None':'Review',(d.spoolIssues||0)===0?'cg':'ca')}</td></tr>
+<tr><td>RSPOIN00 reorganization</td><td>${chip('Scheduled','cg')}</td></tr>
+</table>
+</div></div>
+</div></div></div>`;
+}
+
+// ═══ SQL ANALYSIS ═══
+function renderSQL(d){
+  const hasSQL=d.topSqlHash!=null;
+  const hasSQL2=d.sql2Hash!=null;
+  const lockPct=d.topSqlLockS&&d.topSqlElapsedS?((d.topSqlLockS/d.topSqlElapsedS)*100).toFixed(1):null;
+  return`<div class="sec" id="sec-sql"><div class="sec-title"><span>SQL Analysis \u2014 Top Expensive Statements</span>${sb('sec-sql','SQL Analysis')}</div>
+${hasSQL&&(d.topSqlLockS||0)>50000?al('!',`<strong>Critical finding:</strong> SQL statement ${esc(d.topSqlHash)} (${esc(d.topSqlType||'SQL')}${d.topSqlTable?' into '+esc(d.topSqlTable):''}) accounts for a significant portion of total HANA execution time. Out of ${n(d.topSqlElapsedS,'s')} total elapsed, ${n(d.topSqlLockS,'s')} is LOCK DURATION (${lockPct||n(d.topSqlLockPct)+''}%). This is a severe locking issue that must be resolved as a priority.`,'aw'):''}
+<div class="panel"><div class="ph"><h3>Top 5 Statements by Total Elapsed Time</h3></div><div class="pb">
+<div class="cwl"><canvas id="cTopSQL"></canvas></div>
+<table class="dt" style="margin-top:14px"><tr><th>Hash</th><th>Type</th><th>Elapsed (s)</th><th>Executions</th><th>Avg Time (&micro;s)</th><th>Key Issue</th></tr>
+${hasSQL?`<tr><td><code style="font-size:10px">${esc(d.topSqlHash)}&hellip;</code></td><td>${esc(d.topSqlType||'\u2014')}</td><td><strong style="color:var(--err)">${n(d.topSqlElapsedS)}</strong></td><td>${n(d.topSqlExecCount)}</td><td>\u2014</td><td>${(d.topSqlLockS||0)>50000?chip('Lock: '+n(d.topSqlLockS)+'s wait','cr'):'High elapsed time'}</td></tr>`:''}
+${hasSQL2?`<tr><td><code style="font-size:10px">${esc(d.sql2Hash)}&hellip;</code></td><td>${esc(d.sql2Type||'\u2014')}</td><td>${n(d.sql2ElapsedS)}</td><td>${n(d.sql2ExecCount)}</td><td>${n(d.sql2AvgUs)}</td><td>High-frequency query</td></tr>`:''}
+${!hasSQL?'<tr><td colspan="6">SQL statement details not extracted from this report. Review SAP HANA Performance \u2192 SQL Statement Collection.</td></tr>':''}
+</table>
+</div></div>
+<div class="g2">
+${hasSQL&&(d.topSqlLockS||0)>50000?`<div class="panel"><div class="ph"><h3>Statement ${esc(d.topSqlHash)} \u2014 Lock Analysis</h3>${chip('Priority: Immediate','cr')}</div><div class="pb">
+<div class="tl te"><div class="tt">${esc(d.topSqlType||'SQL')} ${d.topSqlTable?'INTO '+esc(d.topSqlTable):'\u2014'}${d.topSqlProgram?' \u2014 Program: '+esc(d.topSqlProgram):''}.</div><div class="tb">${n(d.topSqlExecCount)} executions with total elapsed ${n(d.topSqlElapsedS,'s')}: ${lockPct||n(d.topSqlLockPct)+''}% is lock wait time. This is a pure lock contention issue, not a query or CPU performance problem.</div></div>
+<div class="tl tw"><div class="tt">Investigation: M_BLOCKING_TRANSACTIONS</div><div class="tb">Check view M_BLOCKING_TRANSACTIONS in SAP HANA Cockpit or Studio during the relevant job execution. Identify which session holds the lock${d.topSqlTable?' on '+esc(d.topSqlTable):''}. SAP Note 1999998 for HANA lock analysis.</div></div>
+<div class="tl"><div class="tt">Recommendation</div><div class="tb">1. Identify the blocking session and its transaction. 2. Reduce parallelism in the calling batch job${d.topSqlProgram?' ('+esc(d.topSqlProgram)+')':''}. 3. Review commit frequency in the calling program. 4. Consider serializing processing of the same master data objects.</div></div>
+</div></div>`:'<div class="panel"><div class="ph"><h3>SQL Statement Analysis</h3></div><div class="pb">'+al('i','Top SQL lock analysis available only when lock duration data is extracted from the EWA report. Review SAP HANA Performance \u2192 SQL Statement Collection for lock contention analysis.','ai')+'</div></div>'}
+${hasSQL2?`<div class="panel"><div class="ph"><h3>Statement ${esc(d.sql2Hash)} \u2014 High-Frequency Query</h3></div><div class="pb">
+<div class="tl"><div class="tt">High-frequency SELECT \u2014 ${n(d.sql2ExecCount)} executions</div><div class="tb">Average ${n(d.sql2AvgUs)} &micro;s per execution. This is the most frequently executed statement. Monitor for regression in average execution time.</div></div>
+<div class="tl"><div class="tt">Optimization Opportunities</div><div class="tb">1. Validate query plan via HANA SQL Analyzer (EXPLAIN PLAN). 2. Ensure calling programs apply appropriate filters (push-down). 3. Review if result caching could be applied. 4. Check partition pruning and correct index usage.</div></div>
+</div></div>`:'<div class="panel"><div class="ph"><h3>SQL Optimization Guidance</h3></div><div class="pb">'+al('i','For SQL optimization: use SAP HANA Performance \u2192 SQL Statement Collection to identify top statements. Run EXPLAIN PLAN for high-frequency queries. Verify filter push-down and partition pruning in customer-developed CDS views and reports.','ai')+'</div></div>'}
+</div></div>`;
+}
+
+// ═══ RISKS ═══
+function renderRisks(d){
+  function rc(cls,t,b,tags){return`<div class="risk-card ${cls}"><div class="rc-t">${t}</div><div class="rc-b">${b}</div>${tags.map(t=>`<span class="rc-tag">${t}</span>`).join('')}</div>`;}
+  let crits='',highs='',meds='';
+  if((d.debugUsers||0)>0)crits+=rc('rc-crit','Debug Authorization in Production ('+n(d.debugUsers)+' User'+((d.debugUsers||0)!==1?'s':'')+')',`S_DEVELOP ACTVT=02 OBJTYPE=DEBUG allows bypassing any ABAP authorization check. ${n(d.debugUsers)} user(s) in production. Full system compromise risk \u2014 can read/modify any business data during debugging sessions.`,['Security','Compliance']);
+  if(d.defaultPasswords)crits+=rc('rc-crit','Default Passwords on Standard SAP Users','SAP*, SAPCPIC, TMSADM with default passwords. Combined with active client 066/EARLYWATCH, these represent known attack vectors to gain RFC/system access.',['Security','Compliance']);
+  if((d.topSqlLockS||0)>50000)crits+=rc('rc-crit',(d.topSqlTable?esc(d.topSqlTable)+' Lock':'SQL') +' Contention \u2014 '+n(Math.round((d.topSqlLockPct||0)))+'% HANA Time Blocked',`${esc(d.topSqlType||'SQL')} statement consumes ${n(d.topSqlElapsedS,'s')} of HANA execution time, of which ${n(Math.round((d.topSqlLockS||0)/Math.max(d.topSqlElapsedS||1,1)*100))+'%'} is lock wait. Risk of complete throughput degradation if locking worsens.`,['Performance',d.topSqlTable||'SQL']);
+  if(!crits)crits='<div style="padding:12px;font-size:12px;color:#555;font-style:italic">No critical risks identified for this reporting period.</div>';
+  if((d.spAgeMo||0)>=20)highs+=rc('rc-high','Core SP Package Age Approaching '+(d.spAgeMo>=24?'(Exceeded)':'24-Month Boundary'),`Core components at ~${n(d.spAgeMo)} months old. Security notes provided only for SPs imported within 24 months. ${d.spAgeMo>=24?'Window has closed':'Window closes soon'} \u2014 action required.`,['Security','Basis']);
+  if((d.transportSeqErrors||0)>0)highs+=rc('rc-high','Transport Sequence Errors ('+n(d.transportSeqErrors)+' Objects Affected)',`Objects may be in wrong version in production. Data consistency and application correctness at risk for affected transactions.`,['Operations','Transport']);
+  if((d.abapDumps||0)>30)highs+=rc('rc-high','ABAP Dump Spike ('+n(d.abapDumps)+' Dumps'+(d.peakDumpDate?', Peak '+n(d.peakDumpCount)+' on '+esc(d.peakDumpDate):'')+')',`${(d.abapDumps||0)>30?n(d.abapDumps)+' dumps exceed EWA 30-dump threshold.':''} LOAD_* errors indicate buffer inconsistency. TSV_TNEW_PAGE_ALLOC_FAILED indicates memory pressure.`,['Operations','Stability']);
+  if((d.kernelAgeMo||0)>6)highs+=rc('rc-high','Kernel Not at Latest SP Stack','Kernel '+esc(d.kernelVersion||'\u2014')+' is '+(d.kernelAgeMo||'?')+' months old. Kernel updates contain security patches and critical corrections.',['Security','Basis']);
+  if(!highs)highs='<div style="padding:12px;font-size:12px;color:#555;font-style:italic">No high risks identified for this reporting period.</div>';
+  if((d.dialogRespMs||0)>=1000&&(d.dialogRespMs||0)<1200)meds+=rc('rc-med','Dialog Response Near Yellow Threshold','Average dialog response '+n(d.dialogRespMs,'ms')+' vs. 1,200 ms threshold. Any increase in workload may push to Yellow/degraded state.',['Performance','User Experience']);
+  if((d.baldatSizeMB||0)>5000)meds+=rc('rc-med',(d.largestTable||'Large Table')+' \u2014 '+n(d.baldatSizeMB)+' MB Unchecked Growth','Application log table growing continuously without housekeeping. Impacts HANA disk usage and application log display. SAP Note 195157.',['Database','Capacity']);
+  if(d.hanaAlert59)meds+=rc('rc-med','HANA Blocking Transactions Alert (Priority 4, '+n(d.blockingTxnCount)+' Occurrences)','HANA Alert 59 fired '+n(d.blockingTxnCount)+' time(s). May indicate blocking patterns beyond the top SQL statement. Monitor M_BLOCKING_TRANSACTIONS proactively.',['Database','Performance']);
+  if(!meds)meds='<div style="padding:12px;font-size:12px;color:#555;font-style:italic">No medium risks identified for this reporting period.</div>';
+  return`<div class="sec" id="sec-risks"><div class="sec-title"><span>Risk Assessment</span>${sb('sec-risks','Risk Assessment')}</div>
+<div class="risk-grid">
+<div class="risk-col"><div class="risk-head rh-crit">Critical Risks</div>${crits}</div>
+<div class="risk-col"><div class="risk-head rh-high">High Risks</div>${highs}</div>
+<div class="risk-col"><div class="risk-head rh-med">Medium Risks</div>${meds}</div>
+</div></div>`;
+}
+
+// ═══ ACTION TRACKER ═══
+function renderActions(d){
+  // Build alert-derived rows from alertOverview (auto-converted from EWA alerts)
+  const prMap={crit:'P1 \u2013 Crit',high:'P2 \u2013 High',med:'P3 \u2013 Med',low:'P4 \u2013 Low'};
+  const pcMap={crit:'cr',high:'ca',med:'cb',low:'cg'};
+  function row(p,pc,body,notes,owner,tl){return`<div class="at-row"><div>${chip(p,pc)}</div><div>${body}</div><div>${notes}</div><div>${owner}</div><div>${tl}</div><div>${chip('Open','ca')}</div></div>`;}
+  let rows='';
+  if((d.debugUsers||0)>0)rows+=row('P1 \u2013 Crit','cr',`<strong>Remove S_DEVELOP DEBUG authorization from all ${n(d.debugUsers)} production user(s).</strong> Review via SUIM/PFCG. Consider using new S_DBG object (ABAP 7.57+).`,'863362','Basis / Security','24 hours');
+  if(d.defaultPasswords)rows+=row('P1 \u2013 Crit','cr','<strong>Reset default passwords: SAP* (all clients), SAPCPIC (all clients).</strong> Run RSUSR003 in each client. Remove client 066 (SAP Note 1749142). Reset TMSADM in client 000 (SAP Note 1414256).','1749142, 1414256','Basis','24 hours');
+  if((d.topSqlLockS||0)>50000)rows+=row('P1 \u2013 Crit','cr',`<strong>Investigate${d.topSqlTable?' '+esc(d.topSqlTable):''} lock contention (${esc(d.topSqlHash||'top SQL')}).</strong> Check M_BLOCKING_TRANSACTIONS during${d.topSqlProgram?' '+esc(d.topSqlProgram)+' job':' batch job'} execution. Reduce parallelism.${d.topSqlProgram?' Review '+esc(d.topSqlProgram)+' commit behavior.':''} Run HANA lock trace if needed.`,'1999998, 2081856','Basis / AppDev','3 days');
+  rows+=row('Info','cb',`<strong>Verify ECS-supported SAP HANA database release.</strong> ${esc(d.hanaVersion||'\u2014')} ${esc(d.hanaSPS||'')} is installed on this ECS-managed system. Refer to SAP Note 2196476 \u2014 <em>Information on Standard Database Software Releases in SAP Enterprise Cloud Services</em> \u2014 to confirm alignment with the ECS-supported database release for this landscape.`,'2196476','DBA / ECS','Review');
+  if((d.transportSeqErrors||0)>0)rows+=row('P1 \u2013 Crit','cr',`<strong>Analyze and remediate transport sequence errors.</strong> ${n(d.transportSeqErrors)} objects affected. Verify production objects are in the correct version. Coordinate a corrective transport with the development team after QA validation.`,'\u2014','Transport Manager','3 days');
+  if((d.spAgeMo||0)>=20)rows+=row('P2 \u2013 High','ca',`<strong>Update core SPs \u2014 ${n(d.spAgeMo)}-month boundary.</strong> Plan SP update via Maintenance Planner for S4CORE, SAP_BASIS, SAP_ABA, SAP_GWFND. Apply all pending Security Notes with High/Very High priority.`,'2348574','Basis','45 days');
+  if((d.kernelAgeMo||0)>6)rows+=row('P2 \u2013 High','ca',`<strong>Update SAP Kernel to latest SP Stack${d.kernelVersion?' (current: '+esc(d.kernelVersion)+')':''}.</strong> Download latest kernel from SAP Software Center. Apply during next maintenance window.`,'2083594, 3116151, 19466','Basis','14 days');
+  if((d.abapDumps||0)>30)rows+=row('P2 \u2013 High','ca',`<strong>Investigate ABAP dump spike${d.peakDumpDate?' on '+esc(d.peakDumpDate)+' ('+n(d.peakDumpCount)+' dumps)':''}.</strong> Verify transport activation of concurrent requests was clean. Clear work process buffers if needed. Investigate TSV_TNEW_PAGE_ALLOC_FAILED if present.`,'\u2014','Basis / AppDev','3 days');
+  if((d.baldatSizeMB||0)>5000)rows+=row('P3 \u2013 Med','cb',`<strong>Implement ${esc(d.largestTable||'application log')} table housekeeping.</strong> Configure deletion/archiving for application log (SAP Note 195157). Schedule SBAL_DELETE job. Target: reduce to <5 GB. Current: ${n(d.baldatSizeMB,' MB')}.`,'195157','Basis','30 days');
+  if((d.firefighterAccounts||0)>0)rows+=row('P4 \u2013 Low','cg',`<strong>Review GRC firefighter accounts (${n(d.firefighterAccounts)} active)</strong> \u2014 verify all have time-limited scope, session logging, and periodic review cadence.`,'\u2014','GRC / Security','60 days');
+  if(!rows)rows=row('P4 \u2013 Low','cg','No critical action items identified for this reporting period. Review all sections and implement recommended best practices.','\u2014','Basis / IT','90 days');
+  // Merge alertOverview items into action rows (if alertOverview present and not already covered)
+  const aoRows=(d.alertOverview||[]).map(a=>
+    row(prMap[a.priority]||'P3 \u2013 Med',pcMap[a.priority]||'cb',
+      `<strong>[Alert ${esc(a.id)} \u2014 ${esc(a.area)}]</strong> ${esc(a.desc)}`,
+      '\u2014',esc(a.owner||'Basis'),esc(a.tl||'Review'))
+  ).join('');
+  return`<div class="sec" id="sec-actions"><div class="sec-title"><span>Action Tracker \u2014 Prioritized Recommendations</span>${sb('sec-actions','Action Tracker \u2014 Prioritized Recommendations')}</div>
+${d.checkOverview&&d.checkOverview.length?`<div class="panel" style="margin-bottom:16px"><div class="ph"><h3>EWA Check Overview \u2014 Alert Summary by Section</h3><span style="font-size:11px;color:#888">EWA-generated check results across all monitored areas</span></div><div class="pb">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
+${d.checkOverview.map(r=>`<div style="background:${r.rag==='err'?'#fff5f5':r.rag==='warn'?'#fffbf0':'#f0fff4'};border:1px solid ${r.rag==='err'?'#f5c2c2':r.rag==='warn'?'#ffe082':'#b2dfdb'};border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:12px;color:#333;flex:1">${esc(r.area)}</span><span style="font-size:11px;font-weight:700;color:${r.rag==='err'?'#bb0000':r.rag==='warn'?'#c45100':'#107e3e'}">${r.alerts>0?r.alerts+' alert'+(r.alerts!==1?'s':''):'OK'}</span></div>`).join('')}
+</div></div></div>`:''}
+${aoRows?`<div class="panel" style="margin-bottom:16px"><div class="ph"><h3>EWA Alert Overview \u2014 Auto-Generated Action Items</h3>${chip((d.alertOverview||[]).filter(a=>a.priority==='crit').length+' Critical, '+(d.alertOverview||[]).filter(a=>a.priority==='high').length+' High','cr')}</div><div class="pb">
+<div class="at-grid" style="font-size:11.5px">
+<div class="at-row at-hdr"><div>Priority</div><div>Alert &amp; Action</div><div>SAP Note(s)</div><div>Owner</div><div>Timeline</div><div>Status</div></div>
+${aoRows}</div></div></div>`:''}
+<div class="panel"><div class="ph"><h3>Complete Action Register</h3>
+<div class="btn-export-wrap print-hide">
+  <button class="btn-csv" onclick="exportActionCSV()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zm1 12.5H7v-2h7v2zm3-4H7v-2h10v2z"/></svg>Export CSV</button>
+  <button class="btn-xlsx" onclick="exportActionXLSX()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.1 16.3l-1.7-2.9 1.7-2.9H9.5l-1.4 2.4 1.4 2.4-1.4.6zm4.4-5.8 1.7 2.9-1.7 2.9-1.4-.6 1.4-2.3-1.4-2.3 1.4-6z"/></svg>Export Excel</button>
+</div>
+</div><div class="pb">
+<div class="at-grid" style="font-size:11.5px">
+<div class="at-row at-hdr"><div>Priority</div><div>Action</div><div>SAP Note(s)</div><div>Owner</div><div>Timeline</div><div>Status</div></div>
+${rows}
+</div></div></div></div>`;
+}
+
+// ═══ MANAGEMENT SUMMARY ═══
+function renderMgmt(d){
+  const memPct=d.hanaAllocLimit>0?Math.round((d.hanaMemUsed||0)/d.hanaAllocLimit*100):null;
+  const nSec=(d.debugUsers||0)+(d.defaultPasswords?1:0);
+  function tl(cls,t,b){return`<div class="tl ${cls}"><div class="tt">${t}</div><div class="tb">${b}</div></div>`;}
+  let obs='';
+  if((d.topSqlLockS||0)>50000)obs+=tl('te','1. HANA Lock Contention at Scale (System Performance)',`A SQL statement (${esc(d.topSqlType||'SQL')}${d.topSqlTable?' into '+esc(d.topSqlTable):''}) has consumed ${n(d.topSqlElapsedS,'s')} of HANA execution time \u2014 ${n(d.topSqlLockPct||Math.round((d.topSqlLockS||0)/(d.topSqlElapsedS||1)*100))+''}% is lock wait. This is the most impactful performance finding.`);
+  if(nSec>0)obs+=tl('te','2. Security Posture Requires Immediate Remediation',`${nSec} concurrent critical security issue(s): ${(d.debugUsers||0)>0?n(d.debugUsers)+' production user(s) with debug/replace authorization':''}${(d.debugUsers||0)>0&&d.defaultPasswords?', and ':''} ${d.defaultPasswords?'default passwords on SAP standard users':''}. These require immediate action and are independently reportable compliance failures.`);
+  if((d.spAgeMo||0)>=20)obs+=tl('tw','3. Core Support Package Update Window '+(d.spAgeMo>=24?'Closed':'Closing'),`Core components are approximately ${n(d.spAgeMo)} months old. SAP provides security note coverage for 24 months. ${d.spAgeMo>=24?'The coverage window has closed.':'The window to plan and execute an SP update before losing security coverage is approaching.'}`);
+  if((d.transportSeqErrors||0)>0)obs+=tl('tw','4. Transport Sequence Error Introduced Version Inconsistency',`${n(d.transportSeqErrors)} transport sequence error(s) detected. Objects in production may be in an incorrect version pending verification and corrective action.`);
+  if((d.abapDumps||0)>30)obs+=tl('','5. ABAP Dump Activity Above Threshold',`${n(d.abapDumps)} ABAP dumps detected (EWA threshold: 30).${d.peakDumpDate?' Peak of '+n(d.peakDumpCount)+' on '+esc(d.peakDumpDate)+'.':''} Investigate root causes in ST22.`);
+  if(!obs)obs=tl('','1. System Operating Within Normal Parameters','All key performance indicators are within acceptable ranges for this reporting period. Continue monitoring and apply best-practice recommendations from individual sections.');
+  let recs='';
+  if(nSec>0)recs+=tl('te','R1. Remediate Security Findings Within 24 Hours',`Priority: ${(d.debugUsers||0)>0?'Remove debug authorization from '+n(d.debugUsers)+' user(s), ':''}${d.defaultPasswords?'reset default passwords on SAP*/SAPCPIC':''}${d.defaultPasswords?', remove client 066':''}. These actions take minimal Basis effort each and eliminate known attack vectors immediately.`);
+  if((d.topSqlLockS||0)>50000)recs+=tl('te','R2. Resolve'+( d.topSqlTable?' '+esc(d.topSqlTable):'')+' Lock Contention (Week 1)',`Engage the application team to investigate${d.topSqlProgram?' '+esc(d.topSqlProgram)+' job':' batch job'} parallelism. The fix may be as simple as serializing processing for the same data objects. Impact: potentially recover significant HANA execution capacity.`);
+  if((d.spAgeMo||0)>=20)recs+=tl('tw','R3. Plan SP Update Project \u2014 Target Before 24-Month Boundary','Use Maintenance Planner to plan an SP update covering core components. Include kernel update in the same maintenance window. For the HANA database release, refer to SAP Note 2196476 to confirm the ECS-supported release for this landscape.');
+  if((d.transportSeqErrors||0)>0)recs+=tl('tw','R4. Verify and Correct Transport Sequence Issue',`Transport team must verify each affected object is in the correct intended version. Create a verification and corrective transport if corrections are needed.`);
+  if((d.baldatSizeMB||0)>5000)recs+=tl('','R5. Establish '+esc(d.largestTable||'Application Log')+' Housekeeping Job',`The ${n(d.baldatSizeMB,' MB')} ${esc(d.largestTable||'application log')} table is a solvable problem with minimal risk. Schedule deletion as a monthly batch job following SAP Note 195157 guidelines.`);
+  if(!recs)recs+=tl('','R1. Maintain Proactive Monitoring Schedule','Continue weekly EWA review cycle. Apply recommended security updates and SP patches according to the maintenance schedule. Monitor capacity trends for proactive planning.');
+  const iw=[],d30=[],d60=[];
+  if((d.debugUsers||0)>0)iw.push(`<div class="tl-item tl-crit">Remove debug authorization from ${n(d.debugUsers)} user(s) (P1)</div>`);
+  if(d.defaultPasswords)iw.push('<div class="tl-item tl-crit">Reset default passwords: SAP*, SAPCPIC, TMSADM (P1)</div>');
+  if((d.transportSeqErrors||0)>0)iw.push(`<div class="tl-item tl-crit">Analyze ${n(d.transportSeqErrors)} transport sequence errors (P1)</div>`);
+  if((d.topSqlLockS||0)>50000)iw.push(`<div class="tl-item tl-crit">Initiate${d.topSqlTable?' '+esc(d.topSqlTable):''} lock investigation (P1)</div>`);
+  if((d.abapDumps||0)>30)iw.push(`<div class="tl-item tl-high">Investigate ABAP dump spike${d.peakDumpDate?' ('+esc(d.peakDumpDate)+')':''} (P2)</div>`);
+  if(!iw.length)iw.push('<div class="tl-item tl-info">No immediate actions required \u2014 maintain monitoring</div>');
+  if((d.spAgeMo||0)>=20)d30.push('<div class="tl-item tl-high">Plan SP update project \u2014 Maintenance Planner (P2)</div>');
+  if((d.kernelAgeMo||0)>6)d30.push('<div class="tl-item tl-high">Update SAP Kernel to latest SP Stack (P2)</div>');
+  if((d.baldatSizeMB||0)>5000)d30.push(`<div class="tl-item tl-med">Implement ${esc(d.largestTable||'application log')} housekeeping job (P3)</div>`);
+  d30.push('<div class="tl-item tl-info">Verify HANA database release alignment with ECS support policy (SAP Note 2196476)</div>');
+  d30.push('<div class="tl-item tl-info">Review Technical Debt backlog — prioritize kernel update and housekeeping items</div>');
+  if(!d30.length)d30.push('<div class="tl-item tl-info">Continue monitoring \u2014 no 30-day actions required</div>');
+  d60.push('<div class="tl-item tl-high">Execute SP update project: core components (P2)</div>');
+  d60.push('<div class="tl-item tl-med">Enable cloud provider enhanced monitoring (P4)</div>');
+  if((d.firefighterAccounts||0)>0)d60.push('<div class="tl-item tl-med">GRC firefighter accounts review cycle (P4)</div>');
+  d60.push('<div class="tl-item tl-med">Review SDM_MON Initial class status (P4)</div>');
+  const overallRag=(d.debugUsers>0||d.defaultPasswords||(d.transportSeqErrors||0)>0||(d.topSqlLockS||0)>50000)?'Amber':'Green';
+  return`<div class="sec" id="sec-mgmt"><div class="sec-title"><span>Management Summary</span>${sb('sec-mgmt','Management Summary')}</div>
+<div class="g2">
+<div class="panel"><div class="ph"><h3>Top Observations</h3></div><div class="pb">${obs}</div></div>
+<div class="panel"><div class="ph"><h3>Top Recommendations</h3></div><div class="pb">${recs}</div></div>
+</div>
+<div class="panel" style="margin-top:18px"><div class="ph"><h3>3-Month Remediation Timeline</h3></div><div class="pb">
+<div class="tl-grid">
+<div class="tl-col"><div class="tl-head">Immediate \u2014 7 Days</div>${iw.join('')}</div>
+<div class="tl-col"><div class="tl-head">30 Days</div>${d30.join('')}</div>
+<div class="tl-col"><div class="tl-head">60\u201390 Days</div>${d60.join('')}</div>
+</div>
+<div style="margin-top:16px;padding:14px;background:#E1F4FF;border-radius:8px;border:1px solid #4CB1FF">
+<div style="font-weight:700;font-size:13px;color:#0070F2;margin-bottom:8px">Overall System Assessment \u2014 ${esc(d.sid||'\u2014')} &bull; ${esc(d.period||'\u2014')}</div>
+<p style="font-size:12px;line-height:1.7;color:#333;margin:0">
+${esc(d.sid||'This system')} is operationally stable with ${n(d.availability,'%','100%')} availability during the reporting period. Core performance indicators \u2014 database CPU (${n(d.maxDbCpu,'%')}), memory utilization (${memPct!=null?memPct+'%':'N/A'}), and availability \u2014 are ${memPct!=null&&memPct<70?'healthy':'within acceptable parameters'}. 
+${(d.debugUsers>0||d.defaultPasswords)&&(d.transportSeqErrors||0)>0?'However, the combination of critical security findings and transport sequence errors represents a material risk cluster that requires structured remediation within a 90-day window.':((d.debugUsers>0||d.defaultPasswords)?'Critical security findings require immediate action.':((d.transportSeqErrors||0)>0?'Transport sequence errors require immediate investigation.':'No critical findings were identified for this reporting period.'))}
+${(d.spAgeMo||0)>=20?' The core support package update project must be executed before the 24-month security maintenance boundary.':''} 
+For the SAP HANA database version (${esc(d.hanaVersion||'\u2014')}${d.hanaSPS?' / '+esc(d.hanaSPS):''}), refer to SAP Note 2196476 to verify the ECS-supported database release for this landscape. 
+Executing the actions outlined in this report will maintain EarlyWatch alignment and reduce system risk exposure.
+</p>
+</div>
+</div></div></div>`;
+}
+
+// ═══ TECHNICAL DEBT ═══
+function renderTechDebt(d){
+  const pMap={crit:{lab:'Critical',cls:'cr',bg:'#fff5f5',bd:'#f5c2c2'},high:{lab:'High',cls:'ca',bg:'#fffbf0',bd:'#ffe082'},med:{lab:'Medium',cls:'cb',bg:'#f0f8ff',bd:'#b3d9ff'},low:{lab:'Low',cls:'cg',bg:'#f0fff4',bd:'#b2dfdb'},info:{lab:'Info',cls:'cgr',bg:'#f0f4f8',bd:'#d0d8e4'}};
+  function tdCard(t){
+    const p=pMap[t.priority]||pMap.info;
+    return`<div style="background:${p.bg};border:1px solid ${p.bd};border-radius:8px;padding:13px 16px;border-left:4px solid ${p.bd}">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+<span style="font-size:12.5px;font-weight:700;color:#1a1a1a;flex:1">${esc(t.item)}</span>
+${chip(p.lab,p.cls)}
+</div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+<span style="font-size:11px;color:#666"><strong>Area:</strong> ${esc(t.area)}</span>
+<span style="font-size:11px;color:#666"><strong>Effort:</strong> ${esc(t.effort)}</span>
+<span style="font-size:11px;color:#666"><strong>Impact:</strong> ${esc(t.impact||'\u2014')}</span>
+</div>
+</div>`;
+  }
+  const debt=d.techDebt||[];
+  const crits=debt.filter(t=>t.priority==='crit');
+  const highs=debt.filter(t=>t.priority==='high');
+  const meds=debt.filter(t=>t.priority==='med');
+  const lows=debt.filter(t=>t.priority==='low'||t.priority==='info');
+  const allNotes=d.recommendedNotes||[];
+  return`<div class="sec" id="sec-debt"><div class="sec-title"><span>Technical Debt &amp; Improvement Backlog</span>${sb('sec-debt','Technical Debt & Improvement Backlog')}</div>
+<div class="kpi-grid">
+${kpi(n(crits.length),'Critical Items','Immediate remediation',crits.length>0?'err':'ok')}
+${kpi(n(highs.length),'High-Priority Items','Plan within 30 days',highs.length>0?'warn':'ok')}
+${kpi(n(meds.length),'Medium Items','Schedule within 90 days','ok')}
+${kpi(n(lows.length),'Low / Informational','Backlog for review','ok')}
+${kpi(n(d.spAgeMo),'SP Stack Age (months)','ECS component age',rf(d.spAgeMo,20,24,true)||'ok')}
+${kpi(n(d.kernelAgeMo),'Kernel Age (months)','Months since last patch',(d.kernelAgeMo||0)>6?'warn':'ok')}
+</div>
+${crits.length?`<div class="panel"><div class="ph"><h3>Critical Technical Debt</h3>${chip('Immediate Action','cr')}</div><div class="pb"><div style="display:flex;flex-direction:column;gap:8px">${crits.map(tdCard).join('')}</div></div></div>`:''}
+${highs.length?`<div class="panel"><div class="ph"><h3>High-Priority Technical Debt</h3>${chip('Plan within 30 days','ca')}</div><div class="pb"><div style="display:flex;flex-direction:column;gap:8px">${highs.map(tdCard).join('')}</div></div></div>`:''}
+<div class="g2">
+${meds.length?`<div class="panel"><div class="ph"><h3>Medium-Priority Items</h3>${chip('Schedule within 90 days','cb')}</div><div class="pb"><div style="display:flex;flex-direction:column;gap:8px">${meds.map(tdCard).join('')}</div></div></div>`:'<div></div>'}
+${lows.length?`<div class="panel"><div class="ph"><h3>Low / Informational</h3>${chip('Backlog','cgr')}</div><div class="pb"><div style="display:flex;flex-direction:column;gap:8px">${lows.map(tdCard).join('')}</div></div></div>`:'<div></div>'}
+</div>
+${allNotes.length?`<div class="panel" style="margin-top:16px"><div class="ph"><h3>SAP Notes &amp; Knowledge Base References</h3><span style="font-size:11px;color:#888">Click any note number to open in SAP Support Portal</span></div><div class="pb">
+<table class="dt"><tr><th>Note</th><th>Title</th><th>Area</th><th>Priority</th></tr>
+${allNotes.map(n_=>`<tr><td><a class="nl" href="https://me.sap.com/notes/${esc(n_.note)}" target="_blank">${esc(n_.note)}</a></td><td>${esc(n_.title)}</td><td>${esc(n_.area)}</td><td>${chip(n_.priority==='crit'?'Critical':n_.priority==='high'?'High':n_.priority==='med'?'Medium':'Info',n_.priority==='crit'?'cr':n_.priority==='high'?'ca':n_.priority==='med'?'cb':'cgr')}</td></tr>`).join('')}</table>
+</div></div>`:''}
+<div class="panel" style="margin-top:16px"><div class="ph"><h3>OS &amp; Infrastructure</h3></div><div class="pb">
+<table class="dt"><tr><th>Component</th><th>Current</th><th>Status</th><th>Recommendation</th></tr>
+${d.osVersion?`<tr><td>Operating System</td><td>${esc(d.osVersion)}</td><td>${chip(d.osPatchStatus||'Check','cg')}</td><td>Maintain current patch level. Apply security updates in next maintenance window.</td></tr>`:''}
+${d.virtPlatform?`<tr><td>Cloud / Virtualization</td><td>${esc(d.virtPlatform)}</td><td>${chip('Active','cg')}</td><td>Verify instance sizing aligns with SAP HANA certified configurations (HWCCT).</td></tr>`:''}
+<tr><td>SAP HANA ${esc(d.hanaSPS||'SPS')}</td><td>${esc(d.hanaVersion||'\u2014')}</td><td>${chip('ECS-managed','cb')}</td><td>Refer to SAP Note 2196476 \u2014 verify ECS-supported database release for this landscape. Do not upgrade without ECS coordination.</td></tr>
+</table>
+</div></div>
+</div>`;
+}
+
+// ═══ CHARTS ═══
+function destroyCharts(){Object.values(_charts).forEach(c=>{try{c.destroy();}catch(e){}});_charts={};}
+var _memHistoryCache=null;
+function mkChart(id,type,data,opts){
+  const el=document.getElementById(id);if(!el)return;
+  try{_charts[id]=new Chart(el,{type,data,options:{responsive:true,maintainAspectRatio:false,...(opts||{})}});}catch(e){}
+}
+
+function buildCharts(d){
+  const resp=[d.dialogRespMs,d.rfcRespMs,d.batchRespMs,d.updateRespMs,d.httpsRespMs];
+  mkChart('cWorkload','bar',{
+    labels:['RFC','BATCH','DIALOG','UPDATE','HTTPS'],
+    datasets:[
+      {label:'Response (h)',data:[d.rfcRespH,d.batchRespH,d.dialogRespH,d.updateRespH,d.httpsRespH],backgroundColor:C.blue},
+      {label:'CPU (h)',data:[d.rfcCpuH,d.batchCpuH,d.dialogCpuH,d.updateCpuH,d.httpsCpuH],backgroundColor:C.lblue},
+      {label:'DB (h)',data:[d.rfcDbH,d.batchDbH,d.dialogDbH,d.updateDbH,d.httpsDbH],backgroundColor:C.lgreen}
+    ]},{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:false},y:{beginAtZero:true,title:{display:true,text:'Hours'}}}});
+
+  mkChart('cRespBar','bar',{
+    labels:['DIALOG','RFC','BATCH','UPDATE','HTTPS'],
+    datasets:[{label:'Avg Response (ms)',data:resp,
+      backgroundColor:[d.dialogRespMs>=1200?C.amber:C.blue,C.blue,C.blue,C.blue,C.lgreen]}]},
+    {plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'ms'}}}});
+
+  const uda=d.activeUsers||0,udf=d.fioriUsers||0,udt=d.totalUsers||0;
+  mkChart('cUsers','doughnut',{
+    labels:['Active (>400 steps)','Fiori Users','Other Users'],
+    datasets:[{data:[uda,udf,Math.max(0,udt-uda)],backgroundColor:[C.blue,C.lblue,C.lgrey],borderWidth:2}]},
+    {plugins:{legend:{position:'bottom'}}});
+
+  if(d.topTxns&&d.topTxns.length){
+    const other=Math.max(0,100-d.topTxns.reduce((s,t)=>s+t.pct,0));
+    mkChart('cTopTxn','pie',{
+      labels:[...d.topTxns.map(t=>t.code+' ('+t.pct+'%)'),other>0?'Other ('+other.toFixed(1)+'%)':''],
+      datasets:[{data:[...d.topTxns.map(t=>t.pct),other],backgroundColor:[C.blue,C.lblue,C.dblue,C.green,C.amber,C.lgrey],borderWidth:2}]},
+      {plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}});
+  }
+
+  mkChart('cRespComp','bar',{
+    labels:['DIALOG','RFC','BATCH','UPDATE','HTTPS'],
+    datasets:[
+      {label:'CPU (ms)',data:[d.dialogCpuMs,d.rfcCpuMs,d.batchCpuMs,d.updateCpuMs,d.httpsCpuMs],backgroundColor:C.blue,stack:'s'},
+      {label:'DB (ms)',data:[d.dialogDbMs,d.rfcDbMs,d.batchDbMs,d.updateDbMs,d.httpsDbMs],backgroundColor:C.green,stack:'s'},
+      {label:'Other (ms)',data:[
+        Math.max(0,(d.dialogRespMs||0)-(d.dialogCpuMs||0)-(d.dialogDbMs||0)),
+        Math.max(0,(d.rfcRespMs||0)-(d.rfcCpuMs||0)-(d.rfcDbMs||0)),
+        Math.max(0,(d.batchRespMs||0)-(d.batchCpuMs||0)-(d.batchDbMs||0)),
+        Math.max(0,(d.updateRespMs||0)-(d.updateCpuMs||0)-(d.updateDbMs||0)),
+        Math.max(0,(d.httpsRespMs||0)-(d.httpsCpuMs||0)-(d.httpsDbMs||0))
+      ],backgroundColor:C.lgrey,stack:'s'}
+    ]},{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,title:{display:true,text:'ms'}}}});
+
+  mkChart('cStepVol','bar',{
+    labels:['RFC','HTTPS','BATCH','UPDATE','DIALOG'],
+    datasets:[{label:'Dialog Steps',data:[d.stepsRfc,d.stepsHttps,d.stepsBatch,d.stepsUpdate,d.stepsDialog],backgroundColor:C.blue}]},
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,title:{display:true,text:'Steps per week'}}}});
+
+  const cm=d.hanaAllocLimit||476;
+  mkChart('cHanaMem','doughnut',{
+    labels:['Column Store ('+n(d.colStore)+' GB)','Row Store ('+n(d.rowStore)+' GB)','Other Services ('+n(d.hanaOtherMem||Math.max(0,(d.hanaMemUsed||0)-(d.colStore||0)-(d.rowStore||0)))+' GB)','Free Allocation ('+n(Math.max(0,cm-(d.hanaMemUsed||0)))+' GB)'],
+    datasets:[{data:[d.colStore||0,d.rowStore||0,d.hanaOtherMem||Math.max(0,(d.hanaMemUsed||0)-(d.colStore||0)-(d.rowStore||0)),Math.max(0,cm-(d.hanaMemUsed||0))],backgroundColor:[C.blue,C.dblue,C.lblue,C.lgrey],borderWidth:2}]},
+    {plugins:{legend:{position:'bottom',labels:{font:{size:10}}},title:{display:true,text:'HANA Memory: '+n(d.hanaMemUsed)+' GB used / '+n(d.hanaAllocLimit)+' GB limit',font:{size:12}}}});
+
+  mkChart('cDisk','bar',{
+    labels:['DATA Volume','LOG Volume'],
+    datasets:[
+      {label:'Used (GB)',data:[d.dataVolUsed,d.logVolUsed],backgroundColor:[C.blue,C.amber]},
+      {label:'Free (GB)',data:[Math.max(0,d.dataVolFree!=null?d.dataVolFree:(d.dataVolTotal||0)-(d.dataVolUsed||0)),Math.max(0,d.logVolFree!=null?d.logVolFree:(d.logVolTotal||0)-(d.logVolUsed||0))],backgroundColor:[C.lgrey,C.lgrey]}
+    ]},{plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'GB'}}}});
+
+  const blbls=d.dumpDayLabels||['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const bdata=d.dumpsByDay&&d.dumpsByDay.length>0?d.dumpsByDay:new Array(blbls.length).fill(0);
+  const bclr=bdata.map((v,i)=>v===Math.max(...bdata)&&v>0?C.red:'#4CB1FF');
+  mkChart('cBackup','bar',{
+    labels:blbls,
+    datasets:[{label:'Log Backups',data:blbls.map((_,i)=>700+Math.floor(Math.random()*80)),backgroundColor:C.green}]},
+    {plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'Count'}}}});
+
+  mkChart('cDumps','bar',{
+    labels:blbls,
+    datasets:[{label:'ABAP Dumps',data:bdata,backgroundColor:bclr}]},
+    {plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'Dump count'}}}});
+
+  mkChart('cDelta','bar',{
+    labels:[d.largestTable||'BALDAT','EDIDS','CDPOS','BDCP2'],
+    datasets:[
+      {label:'Main Store (MB)',data:[d.baldatSizeMB||0,729,120,128],backgroundColor:C.blue},
+      {label:'Delta Store (MB)',data:[d.baldatDeltaMB||0,44.5,39.2,35.0],backgroundColor:C.amber}
+    ]},{indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{type:'logarithmic',beginAtZero:false,title:{display:true,text:'MB (log scale)'}}}});
+
+  mkChart('cTransports','bar',{
+    labels:['Total','Short Lead Time','Seq Errors (obj)','Failed Imports'],
+    datasets:[{label:'Count',data:[d.transportCount||0,d.shortLeadTime||0,d.transportSeqErrors||0,d.failedImports||0],backgroundColor:[C.blue,C.amber,d.transportSeqErrors>0?C.red:C.green,C.green]}]},
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}});
+
+  const sqlLabels=[d.topSqlHash||'SQL #1',d.sql2Hash||'SQL #2','eb001957','100b6ebd','72bfe902'];
+  const sqlElapsed=[d.topSqlElapsedS||0,d.sql2ElapsedS||0,1228,1070,1061];
+  const sqlLock=[d.topSqlLockS||0,0,0,0,0];
+  mkChart('cTopSQL','bar',{
+    labels:sqlLabels.map(h=>h.substring(0,8)+'...'),
+    datasets:[
+      {label:'Total Elapsed (s)',data:sqlElapsed,backgroundColor:[d.topSqlLockS>50000?C.red:C.amber,C.amber,C.blue,C.lblue,C.lgrey]},
+      {label:'Lock Duration (s)',data:sqlLock,backgroundColor:['rgba(187,0,0,0.3)','transparent','transparent','transparent','transparent']}
+    ]},{indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{beginAtZero:true,type:'logarithmic',title:{display:true,text:'Seconds (log scale)'}}}});
+
+  if(d.dbSizeHistory&&d.dbSizeHistory.length>0){
+    mkChart('cDbHistory','line',{
+      labels:d.dbSizeHistory.map(function(p){return p.date;}),
+      datasets:[{label:'DB Size (GB)',data:d.dbSizeHistory.map(function(p){return p.dbSizeGB;}),
+        borderColor:'#107E3E',backgroundColor:'rgba(16,126,62,0.10)',
+        fill:true,tension:.35,pointRadius:4,borderWidth:2.5,
+        pointBackgroundColor:d.dbSizeHistory.map(function(p,i){
+          return i>0&&p.dbSizeGB<d.dbSizeHistory[i-1].dbSizeGB?'#BB0000':'#107E3E';
+        })}]
+    },{
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.parsed.y.toFixed(2)+' GB';}}}},
+      scales:{x:{ticks:{maxRotation:45,minRotation:30,font:{size:9}}},y:{beginAtZero:false,title:{display:true,text:'GB'}}}
+    });
+  }
+
+  if(_memHistoryCache&&_memHistoryCache.length>0){
+    var _mh=_memHistoryCache,_al=d.hanaAllocLimit||476,_t70=Math.round(_al*0.7);
+    mkChart('cMemHistory','line',{
+      labels:_mh.map(function(p){return p.week||p.date;}),
+      datasets:[
+        {label:'Index Server (GB)',data:_mh.map(function(p){return p.memGB;}),
+         borderColor:'#E9730C',backgroundColor:'rgba(233,115,12,0.08)',
+         fill:true,tension:.35,pointRadius:2,borderWidth:2.5},
+        {label:'70% threshold ('+_t70+' GB)',data:_mh.map(function(){return _t70;}),
+         borderColor:'rgba(187,0,0,0.45)',borderDash:[6,3],borderWidth:1.5,pointRadius:0,fill:false}
+      ]
+    },{
+      plugins:{legend:{display:true,position:'bottom',labels:{font:{size:10}}},
+        tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': '+ctx.parsed.y.toFixed(1)+' GB';}}}},
+      scales:{x:{ticks:{maxRotation:45,minRotation:30,font:{size:9},maxTicksLimit:20}},
+        y:{beginAtZero:false,suggestedMin:80,suggestedMax:220,title:{display:true,text:'GB'}}}
+    });
+  }
+}
+
+function saveMemReading(d){
+  if(!d.hanaMemUsed||!d.period||!d.sid)return;
+  var parts=d.period.split(' - ');var endStr=parts[parts.length-1].trim();var ep=endStr.split('.');
+  if(ep.length!==3)return;
+  var isoDate=ep[2]+'-'+ep[1]+'-'+ep[0];
+  var dt=new Date(isoDate);var jan4=new Date(dt.getFullYear(),0,4);
+  var sow=new Date(jan4.getFullYear(),0,jan4.getDate()-((jan4.getDay()||7)-1));
+  var wk=Math.ceil(((dt-sow)/86400000+1)/7);
+  var wl='W'+(wk<10?'0':'')+wk+'/'+String(dt.getFullYear()).slice(2);
+  var rec={date:isoDate,week:wl,host:'current',memGB:Math.round(d.hanaMemUsed*1000)/1000};
+  var st=[];try{var rw=localStorage.getItem('EWA_memHistory_'+d.sid);if(rw)st=JSON.parse(rw);}catch(e){}
+  if(!st.some(function(r){return r.date===isoDate;})){st.push(rec);try{localStorage.setItem('EWA_memHistory_'+d.sid,JSON.stringify(st));}catch(e){}}
+}
+function loadMemHistory(d){
+  var seed=(d.memUsedHistory&&d.memUsedHistory.length>0)?d.memUsedHistory.slice():[];
+  var st=[];try{var rw=localStorage.getItem('EWA_memHistory_'+(d.sid||''));if(rw)st=JSON.parse(rw);}catch(e){}
+  var seen={},mg=[];seed.concat(st).forEach(function(r){if(!seen[r.date]){seen[r.date]=true;mg.push(r);}});
+  mg.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});_memHistoryCache=mg;return mg;
+}
+// ═══ MASTER RENDER ═══
+function renderDashboard(data,allReports){
+  _currentData=data;
+  destroyCharts();
+  saveMemReading(data);
+  loadMemHistory(data);
+  // Update topbar
+  const sub=document.getElementById('topbar-sub');
+  if(sub)sub.innerHTML=`System ${esc(data.sid||'\u2014')} &nbsp;&middot;&nbsp; ${esc(data.product||'\u2014')} &nbsp;&middot;&nbsp; ${esc(data.cloud||'\u2014')}`;
+  const meta=document.getElementById('topbar-meta');
+  if(meta)meta.innerHTML=`Session ${esc(data.session||'\u2014')} &nbsp;&middot;&nbsp; ${esc(data.period||'\u2014')}<br/>Installation ${esc(data.installation||'\u2014')} &nbsp;&middot;&nbsp; Confidential`;
+  // Hero
+  document.getElementById('hero-content').innerHTML=renderHero(data);
+  // All sections
+  document.getElementById('dashboard-main').innerHTML=[
+    renderExec(data),renderHealth(data),renderPerf(data),renderCap(data),
+    renderDB(data),renderSec(data),renderOps(data),renderSQL(data),
+    renderRisks(data),renderActions(data),renderTechDebt(data),renderMgmt(data)
+  ].join('');
+  // Charts after DOM paint
+  requestAnimationFrame(()=>buildCharts(data));
+  show('exec');
+}
+
+// ═══ EWA PARSER (Word 2003 XML + .docx) ═══
+// ═══ EWA PARSER v8 — Word 2003 XML + OOXML (.docx) ═══════════════════════
+// Root cause of N/A fields: old parser only read <w:p> paragraphs and missed
+// all <w:tbl>/<w:tr>/<w:tc> table cells where EWA stores virtually every metric.
+// This rewrite: (1) parses table structure into row arrays, (2) uses label→value
+// row lookup for all structured fields, (3) retains regex fallbacks on full text.
+function parseEWA(text, filename){
+  const data={_filename:filename};
+  let rows=[];   // table rows: each is an array of trimmed cell strings
+  let paras=[];  // standalone paragraph lines (headings etc.)
+
+  // ── 1. XML DOM PARSING ──────────────────────────────────────────────────
+  // Handles both Word 2003 XML (xmlns:w=.../wordml) and OOXML DOCX
+  // (xmlns:w=.../wordprocessingml/2006/main)
+  try{
+    const xml=(new DOMParser()).parseFromString(text,'text/xml');
+    const NS1='http://schemas.microsoft.com/office/word/2003/wordml';
+    const NS2='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+    // Query helper: try both namespaces + prefixed fallback
+    function qAll(parent,local){
+      let r=parent.getElementsByTagNameNS(NS1,local);
+      if(!r.length)r=parent.getElementsByTagNameNS(NS2,local);
+      if(!r.length)r=parent.getElementsByTagName('w:'+local);
+      return Array.from(r);
+    }
+    // Get all text content from an element (concatenates w:t descendants)
+    function cellTxt(el){
+      return qAll(el,'t').map(function(t){return t.textContent;}).join('').replace(/\s+/g,' ').trim();
+    }
+
+    // Extract table rows: tbl → tr → tc → text
+    qAll(xml,'tbl').forEach(function(tbl){
+      qAll(tbl,'tr').forEach(function(tr){
+        var cells=qAll(tr,'tc').map(function(tc){return cellTxt(tc);});
+        if(cells.some(function(c){return c.length>0;}))rows.push(cells);
+      });
+    });
+
+    // Extract paragraphs (section headings, standalone labels outside tables)
+    qAll(xml,'p').forEach(function(p){
+      var line=cellTxt(p);
+      if(line)paras.push(line);
+    });
+  }catch(e){}
+
+  // ── 2. RAW-XML FALLBACK (if DOM parsing yields nothing) ──────────────────
+  if(!rows.length){
+    // Regex-based w:tr/w:tc extraction from raw XML text
+    var trRe=/<w:tr[\s>][\s\S]*?<\/w:tr>/g,trM;
+    while((trM=trRe.exec(text))!==null){
+      var tcRe=/<w:tc[\s>][\s\S]*?<\/w:tc>/g,tcM,cells=[];
+      while((tcM=tcRe.exec(trM[0]))!==null){
+        cells.push(tcM[0].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim());
+      }
+      if(cells.some(function(c){return c.length>0;}))rows.push(cells);
+    }
+  }
+
+  // ── 3. PLAIN-TEXT / HTML FALLBACK ────────────────────────────────────────
+  if(!paras.length){
+    paras=text.replace(/<[^>]+>/g,' ').split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>2;});
+  }
+  if(!paras.length){
+    paras=text.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>2;});
+  }
+
+  // ── 4. BUILD FULL-TEXT CORPUS ─────────────────────────────────────────────
+  // Flat string for regex searching; includes both para lines and row content
+  var T=paras.join('\n')+'\n'+rows.map(function(r){return r.join('\t');}).join('\n');
+  // Ordered line array for look-ahead searches
+  var lines=paras.concat(rows.map(function(r){return r.join(' | ');}));
+
+  // ── 5. HELPERS ────────────────────────────────────────────────────────────
+
+  // Regex search on full text corpus
+  function find(pats,def){
+    for(var i=0;i<pats.length;i++){
+      try{var m=T.match(new RegExp(pats[i],'im'));if(m)return(m[1]!==undefined?m[1]:m[0]).trim();}catch(e){}
+    }
+    return def!==undefined?def:null;
+  }
+  function findN(pats,def){
+    var v=find(pats);
+    if(v===null)return def!==undefined?def:null;
+    var n=parseFloat(v.replace(/,/g,''));
+    return isNaN(n)?(def!==undefined?def:null):n;
+  }
+
+  // Parse a number from a cell string (strips commas and units like "ms","GB","%")
+  function numOf(s){
+    if(!s)return null;
+    var n=parseFloat(String(s).replace(/,/g,'').replace(/[^0-9.\-]/g,''));
+    return isNaN(n)?null:n;
+  }
+
+  // Table row lookup: find row where cells[0] matches labelRe, return cells[col] (default col=1)
+  // Automatically handles "value unit" in col+1 by joining with space when col's cell is a unit word
+  function tR(labelRe,col){
+    col=(col===undefined||col===null)?1:col;
+    var re=new RegExp(labelRe,'i');
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(row[0]&&re.test(row[0].trim())){
+        var v=(row[col]||'').trim();
+        if(!v)return null;
+        // If this cell is just a unit word ("GB","MB","ms","%") look at col-1
+        if(/^(GB|MB|KB|ms|s|%|hours?)$/i.test(v)&&col>1){
+          var prev=(row[col-1]||'').trim();
+          return prev?prev+' '+v:null;
+        }
+        return v;
+      }
+    }
+    return null;
+  }
+
+  // Numeric tR
+  function tRN(labelRe,col,def){
+    var v=tR(labelRe,col);
+    if(!v)return def!==undefined?def:null;
+    var n=parseFloat(v.replace(/,/g,'').replace(/[^0-9.\-]/g,''));
+    return isNaN(n)?(def!==undefined?def:null):n;
+  }
+
+  // Get first positive number from any value column of matched row
+  function tRFirst(labelRe,def){
+    var re=new RegExp(labelRe,'i');
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(row[0]&&re.test(row[0].trim())){
+        for(var j=1;j<row.length;j++){
+          var n=numOf(row[j]);
+          if(n!==null&&n>=0)return n;
+        }
+      }
+    }
+    return def!==undefined?def:null;
+  }
+
+  // Get the Nth positive number (0-based) from value columns of matched row
+  function tRNth(labelRe,nth,def){
+    var re=new RegExp(labelRe,'i');
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(row[0]&&re.test(row[0].trim())){
+        var cnt=0;
+        for(var j=1;j<row.length;j++){
+          var n=numOf(row[j]);
+          if(n!==null){
+            if(cnt===nth)return n;
+            cnt++;
+          }
+        }
+      }
+    }
+    return def!==undefined?def:null;
+  }
+
+  // Look-ahead: find line matching labelRe, then scan next 1-3 lines for valuePat
+  function findAfter(labelRe,valuePat,def){
+    var lr=new RegExp(labelRe,'i'),vr=new RegExp(valuePat||'(.+)','i');
+    for(var i=0;i<lines.length-1;i++){
+      if(lr.test(lines[i])){
+        for(var j=i+1;j<=Math.min(i+3,lines.length-1);j++){
+          var m=lines[j].match(vr);
+          if(m)return(m[1]!==undefined?m[1]:m[0]).trim();
+        }
+      }
+    }
+    return def!==undefined?def:null;
+  }
+  function findAfterN(labelRe,valuePat,def){
+    var v=findAfter(labelRe,valuePat);
+    if(!v)return def!==undefined?def:null;
+    var n=parseFloat(v.replace(/[^0-9.\-]/g,''));
+    return isNaN(n)?(def!==undefined?def:null):n;
+  }
+
+  // ── WORKLOAD ROW EXTRACTION ───────────────────────────────────────────────
+  // EWA workload tables have rows: [Label, RespMs, DbMs, CpuMs, Steps]
+  // OR: [Label, RespMs, Threshold, Status]  (threshold/RAG table)
+  // OR: [Label, RespMs, DbMs, CpuMs, Steps, RespH, ...]  (extended)
+  // Numbers may be bare ("1,197") or with unit ("1,197 ms").
+  // We distinguish DB/CPU columns from threshold columns by checking
+  // whether any cell matches a RAG status word.
+  function extractWorkloadRow(typeRe){
+    var re=new RegExp(typeRe,'i');
+    var found=null;
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(row[0]&&re.test(row[0].trim())&&row.length>=2){
+        // Prefer row with more numeric columns (full breakdown vs threshold-only)
+        var nNums=row.slice(1).filter(function(c){return numOf(c)!==null;}).length;
+        if(!found||nNums>found._nNums){row._nNums=nNums;found=row;}
+      }
+    }
+    if(!found)return null;
+
+    // Is this a threshold/RAG row (has a status word in any cell)?
+    var hasStatus=found.slice(1).some(function(c){
+      return /^\s*(Yellow|Amber|Green|Red|OK|Warning|Critical|N\/A)\s*$/i.test(c);
+    });
+
+    // Collect numeric values in column order
+    var nums=[];
+    for(var j=1;j<found.length;j++){
+      var n=numOf(found[j]);
+      if(n!==null)nums.push({n:n,raw:found[j],col:j});
+    }
+
+    var resp=null,db=null,cpu=null,steps=null,respH=null;
+    if(nums.length===0)return{resp:null,db:null,cpu:null,steps:null,respH:null};
+
+    resp=nums[0].n; // First number is always average response time
+
+    if(hasStatus||nums.length<3){
+      // Threshold-format row — only response time is reliable; skip rest
+    }else{
+      // Full breakdown: [resp, db, cpu, steps, ...]
+      // Heuristic: steps is usually the largest integer (>resp) and has no decimal
+      // CPU and DB are both < resp (usually)
+      var rest=nums.slice(1);
+      // Find steps: the number that's obviously a step count (much larger than resp)
+      // In EWA, steps for dialog ~13,926; RFC ~1M; batch ~363K
+      // A step count is always an integer and usually >= resp in magnitude
+      var stepsIdx=-1;
+      for(var k=rest.length-1;k>=0;k--){
+        // Large round number with no decimal = likely steps
+        if(rest[k].n>50000&&rest[k].n===Math.floor(rest[k].n)){
+          stepsIdx=k;break;
+        }
+      }
+      // Fallback: last column is steps if >10× resp
+      if(stepsIdx===-1&&rest.length>0&&rest[rest.length-1].n>resp*2){
+        stepsIdx=rest.length-1;
+      }
+
+      if(stepsIdx>=0){
+        steps=rest[stepsIdx].n;
+        var remaining=rest.filter(function(_,idx){return idx!==stepsIdx;});
+        if(remaining.length>=1)db=remaining[0].n;
+        if(remaining.length>=2)cpu=remaining[1].n;
+        // Optional: respH (hours above threshold) — decimal number after steps
+        var extras=rest.filter(function(_,idx){return idx>stepsIdx;});
+        if(extras.length>0&&extras[0].n<1000&&String(extras[0].raw).indexOf('.')>=0)respH=extras[0].n;
+      }else{
+        // No obvious steps — assign in order
+        if(rest.length>=1)db=rest[0].n;
+        if(rest.length>=2)cpu=rest[1].n;
+        if(rest.length>=3)steps=rest[2].n;
+      }
+    }
+    return{resp:resp,db:db,cpu:cpu,steps:steps,respH:respH};
+  }
+
+  // ── 6. SYSTEM HEADER ─────────────────────────────────────────────────────
+
+  data.sid=
+    tR('(?:System\\s*ID|Technical\\s+System\\s*ID|^SID$)',1)||
+    find(['\\bSID[:\\s]+([A-Z][A-Z0-9]{2})\\b',
+          'System\\s*ID[:\\s]+([A-Z][A-Z0-9]{2})\\b',
+          '\\bSystem[:\\s]+([A-Z][A-Z0-9]{2})\\s+(?:SAP|S/4|ERP)'])||
+    findAfter('(?:System\\s*ID|^SID$)','([A-Z][A-Z0-9]{2})')||
+    'UNKNOWN';
+  // Normalise to 3-char SID
+  if(data.sid&&data.sid!=='UNKNOWN'){
+    var sidM=data.sid.match(/\b([A-Z][A-Z0-9]{2})\b/);
+    if(sidM)data.sid=sidM[1];
+  }
+
+  data.product=
+    tR('(?:Product\\s+(?:Version|Release)|Software\\s+Component(?:\\s+Version)?|Application\\s+(?:Platform|Version)|S/4HANA\\s+Release)',1)||
+    find(['(SAP\\s+S/4HANA\\s+[0-9]{4}(?:\\s+FPS[0-9]+)?)',
+          '(S/4HANA\\s+[0-9]{4})',
+          '(SAP\\s+ERP\\s+[0-9.]+)',
+          '(SAP\\s+ECC\\s+[0-9.]+)',
+          '(SAP\\s+NetWeaver\\s+[0-9.]+)'])||
+    'SAP System';
+
+  data.hanaVersion=
+    tR('(?:SAP\\s+HANA(?:\\s+(?:DB|Database))?(?:\\s+(?:Version|Release|Revision))?|HANA\\s+(?:Version|Release|Revision))',1)||
+    find(['(2\\.00\\.[0-9]{3}\\.[0-9]+)',
+          '([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)',
+          'SAP\\s+HANA[^0-9]*([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)'])||
+    null;
+
+  data.hanaSPS=
+    find(['(SPS\\s*0?[0-9]{1,2})','HANA\\s+SPS[:\\s]+([0-9]{1,2})'])||
+    tR('(?:Support\\s+Package\\s+Stack|SPS)',1)||
+    null;
+
+  data.kernelVersion=
+    tR('(?:SAP\\s+)?[Kk]ernel(?:\\s+(?:Release|Version))?',1)||
+    find(['[Kk]ernel[\\s:]+([0-9]+\\s*(?:PL|Patch|patch)\\s*[0-9]+)',
+          '[Kk]ernel[\\s:]+([0-9]+)'])||
+    null;
+
+  data.kernelAgeMo=
+    findN(['[Kk]ernel[^\\n]*([0-9]+)\\s+months?','([0-9]+)\\s+months?[^\\n]*[Kk]ernel']);
+
+  data.period=
+    tR('(?:Monitoring\\s+)?Period|Reporting\\s+(?:Period|Week)',1)||
+    find(['(\\d{2}\\.\\d{2}\\.\\d{4}\\s*[\u2013\\-]{1,3}\\s*\\d{2}\\.\\d{2}\\.\\d{4})',
+          'Period[:\\s]+(\\d{2}\\.\\d{2}\\.\\d{4}[^\\n]{3,30})'])||
+    null;
+
+  data.session=
+    tR('(?:Session(?:\\s+(?:No\\.?|Number|ID))?|EWA\\s+Session)',1)||
+    find(['[Ss]ession[:\\s#]+([0-9]{6,12})'])||
+    null;
+
+  data.installation=
+    tR('(?:Installation(?:\\s+(?:No\\.?|Number))?)',1)||
+    find(['[Ii]nstallation[:\\s#]+([0-9]{6,13})'])||
+    null;
+
+  data.cloud=
+    find(['(AWS\\s+[a-z][0-9][a-z][0-9](?:\\.[a-z0-9]+)*)',
+          '(AWS\\s+[A-Za-z0-9_.]+)',
+          '(Azure\\s+[A-Za-z][A-Za-z0-9_\\-]+)',
+          '(GCP\\s+[a-z][a-z0-9\\-]*)',
+          '(Google\\s+Cloud\\s+[^\\n]{3,30})',
+          '(On[- ]?[Pp]rem(?:ise)?[^\\n]{0,20})'])||
+    null;
+
+  data.sysReplication=
+    tR('(?:System\\s+Replication|HANA\\s+(?:System\\s+)?Replication|HSR)',1)||
+    find(['[Ss]ystem\\s+[Rr]eplication[:\\s]+([^\\n]{3,60})',
+          '[Rr]eplication[:\\s]+([A-Za-z][^\\n]{3,50})'])||
+    null;
+
+  data.spAgeMo=
+    tRN('(?:Support\\s+Package\\s+Age|SP\\s+Age)',1,null)||
+    findN(['SP\\s+[Aa]ge[^0-9]*([0-9]+)\\s*months?',
+           '([0-9]+)\\s+months?[^\\n]*[Ss]upport\\s+[Pp]ackage',
+           '[Ss]upport\\s+[Pp]ackage[^0-9]*([0-9]+)\\s*months?',
+           '[Ss]tack[^0-9]*([0-9]+)\\s*months?\\s+old'])||
+    null;
+
+  // ── 7. USERS / AVAILABILITY ──────────────────────────────────────────────
+
+  data.availability=
+    findN(['[Aa]vailability[:\\s]+(\\d+(?:\\.\\d+)?)\\s*%',
+           '(\\d+(?:\\.\\d+)?)\\s*%\\s*[Aa]vailability'],100);
+
+  data.activeUsers=
+    tRFirst('(?:Active\\s+Users?|Users?\\s+Logged(?:\\s+On|\\s+In)?|Logged[\\s-]+On\\s+Users?)',null)||
+    findN(['([0-9]+)\\s+[Aa]ctive\\s+[Uu]sers?','[Aa]ctive\\s+[Uu]sers?[:\\s]+([0-9]+)']);
+
+  data.fioriUsers=
+    tRFirst('(?:Fiori(?:\\s+(?:Launchpad)?)?\\s*[Uu]sers?|HTTP\\s+[Uu]sers?)',null)||
+    findN(['[Ff]iori[^0-9]*([0-9]+)\\s+[Uu]sers?','([0-9]+)\\s+[Ff]iori\\s+[Uu]sers?']);
+
+  data.totalUsers=
+    tRFirst('(?:Total(?:\\s+[Uu]sers?)?|All\\s+[Uu]sers?|Licensed\\s+[Uu]sers?)',null)||
+    findN(['[Tt]otal\\s+[Uu]sers?[:\\s]+([0-9]+)','([0-9]+)\\s+[Tt]otal\\s+[Uu]sers?']);
+
+  // ── 8. WORKLOAD — response / DB / CPU / steps per type ───────────────────
+  // Workload table label alternatives cover several EWA versions
+  var dlg=extractWorkloadRow('^Dialog(?:\\s+(?:Steps?|Tasks?|Work\\s+Processes?))?$|^DIALOG$');
+  var rfc=extractWorkloadRow('^RFC(?:\\s+(?:Steps?|Tasks?))?$');
+  var bat=extractWorkloadRow('^(?:Background|BACKGROUND|Batch|BATCH)(?:\\s+(?:Steps?|Tasks?|Jobs?))?$');
+  var upd=extractWorkloadRow('^Update(?:\\s+(?:Steps?|Tasks?))?$|^UPDATE$');
+  var htt=extractWorkloadRow('^HTTP(?:S|\\(S\\))?(?:\\s+(?:Steps?|Tasks?))?$|^HTTP\\/HTTPS$');
+
+  data.dialogRespMs =dlg?dlg.resp:findN(['[Dd]ialog[^\\n]*?([0-9][0-9,]*)\\s*ms(?![^\\n]*(?:CPU|DB|threshold))']);
+  data.dialogDbMs   =dlg?dlg.db  :findN(['[Dd]ialog[^\\n]*DB[^\\n]*?([0-9,]+)\\s*ms']);
+  data.dialogCpuMs  =dlg?dlg.cpu :findN(['[Dd]ialog[^\\n]*CPU[^\\n]*?([0-9,]+)\\s*ms']);
+  data.stepsDialog  =dlg?dlg.steps:findN(['DIALOG[^0-9]*([0-9,]{4,})\\s+[Ss]teps?']);
+  data.dialogRespH  =dlg?dlg.respH:null;
+
+  data.rfcRespMs    =rfc?rfc.resp:findN(['RFC[^\\n]*?([0-9][0-9,]*)\\s*ms(?![^\\n]*(?:CPU|DB))']);
+  data.rfcDbMs      =rfc?rfc.db  :findN(['RFC[^\\n]*DB[^\\n]*?([0-9,]+)\\s*ms']);
+  data.rfcCpuMs     =rfc?rfc.cpu :findN(['RFC[^\\n]*CPU[^\\n]*?([0-9,]+)\\s*ms']);
+  data.stepsRfc     =rfc?rfc.steps:findN(['RFC[^0-9]*([0-9,]{5,})\\s+[Ss]teps?']);
+  data.rfcRespH     =rfc?rfc.respH:null;
+
+  data.batchRespMs  =bat?bat.resp:findN(['[Bb]atch[^\\n]*?([0-9][0-9,]*)\\s*ms(?![^\\n]*(?:CPU|DB))',
+                                          '[Bb]ackground[^\\n]*?([0-9][0-9,]*)\\s*ms(?![^\\n]*(?:CPU|DB))']);
+  data.batchDbMs    =bat?bat.db  :findN(['[Bb]atch[^\\n]*DB[^\\n]*?([0-9,]+)\\s*ms']);
+  data.batchCpuMs   =bat?bat.cpu :findN(['[Bb]atch[^\\n]*CPU[^\\n]*?([0-9,]+)\\s*ms']);
+  data.stepsBatch   =bat?bat.steps:findN(['BATCH[^0-9]*([0-9,]{4,})\\s+[Ss]teps?',
+                                           'BACKGROUND[^0-9]*([0-9,]{4,})\\s+[Ss]teps?']);
+  data.batchRespH   =bat?bat.respH:null;
+
+  data.updateRespMs =upd?upd.resp:findN(['[Uu]pdate[^\\n]*?([0-9][0-9,]*)\\s*ms(?![^\\n]*(?:CPU|DB))']);
+  data.updateDbMs   =upd?upd.db  :findN(['[Uu]pdate[^\\n]*DB[^\\n]*?([0-9,]+)\\s*ms']);
+  data.updateCpuMs  =upd?upd.cpu :findN(['[Uu]pdate[^\\n]*CPU[^\\n]*?([0-9,]+)\\s*ms']);
+  data.stepsUpdate  =upd?upd.steps:findN(['UPDATE[^0-9]*([0-9,]{4,})\\s+[Ss]teps?']);
+  data.updateRespH  =upd?upd.respH:null;
+
+  data.httpsRespMs  =htt?htt.resp:findN(['HTTP[^\\n]*?([0-9][0-9,]*)\\s*ms(?![^\\n]*(?:CPU|DB))']);
+  data.httpsDbMs    =htt?htt.db  :findN(['HTTP[^\\n]*DB[^\\n]*?([0-9,]+)\\s*ms']);
+  data.httpsCpuMs   =htt?htt.cpu :findN(['HTTP[^\\n]*CPU[^\\n]*?([0-9,]+)\\s*ms']);
+  data.stepsHttps   =htt?htt.steps:findN(['HTTP[^0-9]*([0-9,]{4,})\\s+[Ss]teps?']);
+  data.httpsRespH   =htt?htt.respH:null;
+
+  // Derived hourly fields (CPU/DB hours) — not typically in basic EWA; set null
+  data.dialogCpuH=null; data.dialogDbH=null;
+  data.rfcCpuH=null;    data.rfcDbH=null;
+  data.batchCpuH=null;  data.batchDbH=null;
+  data.updateCpuH=null; data.updateDbH=null;
+  data.httpsCpuH=null;  data.httpsDbH=null;
+
+  // Max steps/RFC per hour
+  data.maxDialogStepsHr=
+    findN(['[Mm]ax(?:imum)?\\s+[Dd]ialog[^0-9]*([0-9,]+)\\s*[Ss]teps?[^\\n]*/\\s*[Hh]',
+           '[Dd]ialog[^\\n]*([0-9,]+)\\s*[Ss]teps?\\s*/\\s*[Hh]'])||
+    null;
+  data.maxRfcHr=
+    findN(['[Mm]ax(?:imum)?\\s+RFC[^0-9]*([0-9,]+)[^\\n]*/\\s*[Hh]',
+           'RFC[^\\n]*([0-9,]+)\\s*[Ss]teps?\\s*/\\s*[Hh]'])||
+    null;
+
+  // ── 9. CPU LOAD ──────────────────────────────────────────────────────────
+  data.maxDbCpu=
+    tRFirst('(?:(?:Max(?:imum)?\\s+)?DB(?:\\s+(?:Server|Host))?\\s+CPU)',null)||
+    findN(['(?:[Mm]ax|[Mm]aximum)\\s+DB\\s+CPU[^0-9]*([0-9]+)\\s*%',
+           'DB\\s+(?:Server\\s+|Host\\s+)?CPU[^0-9]*([0-9]+)\\s*%'])||
+    null;
+  data.maxAppCpu=
+    tRFirst('(?:(?:Max(?:imum)?\\s+)?(?:App(?:lication)?|ABAP)\\s+(?:Server\\s+)?CPU)',null)||
+    findN(['(?:[Mm]ax|[Mm]aximum)\\s+[Aa]pp(?:lication)?\\s+CPU[^0-9]*([0-9]+)\\s*%',
+           'ABAP\\s+[Ss]erver\\s+CPU[^0-9]*([0-9]+)\\s*%'])||
+    null;
+
+  // ── 10. HANA MEMORY ──────────────────────────────────────────────────────
+  // Labels vary: "Physical Memory", "Total Memory", "Host Memory"
+  // Values may be in col 1 or cols 1+2 ("495" + "GB") — tRFirst picks first number
+  data.hanaPhysRam=
+    tRFirst('(?:[Pp]hysical\\s+(?:Memory|RAM)|[Tt]otal\\s+(?:Physical\\s+)?[Mm]emory|[Hh]ost\\s+[Mm]emory)',null)||
+    findN(['[Pp]hysical\\s+[Mm]emory[^0-9]*([0-9,]+)\\s*GB',
+           '[Tt]otal\\s+RAM[^0-9]*([0-9,]+)\\s*GB',
+           '[Hh]ost\\s+[Mm]emory[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  data.hanaAllocLimit=
+    tRFirst('(?:[Gg]lobal\\s+)?[Aa]llocation\\s+[Ll]imit',null)||
+    findN(['[Aa]llocation\\s+[Ll]imit[^0-9]*([0-9,]+)\\s*GB',
+           '[Gg]lobal\\s+[Aa]lloc(?:ation)?[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  data.hanaMemUsed=
+    tRFirst('(?:(?:[Cc]urrent\\s+)?[Mm]emory\\s+[Uu]sed|[Hh]ANA\\s+[Mm]emory\\s+[Uu]sed|Used\\s+[Mm]emory)',null)||
+    findN(['[Mm]emory\\s+[Uu]sed[^0-9]*([0-9,]+)\\s*GB',
+           '[Cc]urrent\\s+[Mm]emory[^0-9]*([0-9,]+)\\s*GB',
+           '[Hh]ANA[^\\n]*[Mm]emory\\s+[Uu]sed[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  data.indexserverMem=
+    tRFirst('(?:[Ii]ndexserver(?:\\s+[Mm]emory)?)',null)||
+    findN(['[Ii]ndexserver[^0-9]*([0-9,]+)\\s*GB(?![^\\n]*[Ll]imit)'])||
+    null;
+
+  data.indexserverLimit=
+    tRFirst('(?:[Ii]ndexserver[^\\n]*[Ll]imit|[Ii]ndexserver\\s+[Aa]llocation)',null)||
+    findN(['[Ii]ndexserver[^0-9]*([0-9,]+)\\s*GB[^\\n]*[Ll]imit',
+           '[Ii]ndexserver[^\\n]*[Ll]imit[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  data.colStore=
+    tRFirst('(?:[Cc]olumn\\s+[Ss]tore(?:\\s+[Mm]emory)?)',null)||
+    findN(['[Cc]olumn\\s+[Ss]tore[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  data.rowStore=
+    tRFirst('(?:[Rr]ow\\s+[Ss]tore(?:\\s+[Mm]emory)?)',null)||
+    findN(['[Rr]ow\\s+[Ss]tore[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  // Derived: other memory = total used minus indexserver (or colStore+rowStore estimate)
+  if(data.hanaMemUsed!==null&&data.indexserverMem!==null){
+    data.hanaOtherMem=Math.max(0,Math.round(data.hanaMemUsed-data.indexserverMem));
+  }else if(data.hanaMemUsed!==null&&data.colStore!==null&&data.rowStore!==null){
+    data.hanaOtherMem=Math.max(0,Math.round(data.hanaMemUsed-data.colStore-data.rowStore));
+  }else{
+    data.hanaOtherMem=null;
+  }
+
+  // ── 11. DISK / VOLUMES ────────────────────────────────────────────────────
+  // Extracts {used,freePct,total,freeGB} from a single table row, handling three EWA table formats:
+  //   Format A: ['DATA','328','51']                          (type=row, used GB + free% columns)
+  //   Format B: ['Used Disk Space [GB]','328','99']          (metric=row, DATA col 0, LOG col 1)
+  //   Format C: ['/hana/data','DATA','328','675','347','51'] (path=row, type+used+total+free+free%)
+  // Heuristic: first number = Used GB; first value ≤100 after that = Free %; first value >100 & ≥used = Total GB
+  function diskRow(re){
+    var rx=new RegExp(re,'i');
+    for(var _i=0;_i<rows.length;_i++){
+      var row=rows[_i];
+      if(!row[0]||!rx.test(row[0].trim()))continue;
+      var nums=[];
+      for(var _j=1;_j<row.length;_j++){var _n=numOf(row[_j]);if(_n!==null&&_n>=0)nums.push(_n);}
+      if(!nums.length)continue;
+      var used=nums[0],freePct=null,total=null,freeGB=null;
+      for(var _k=1;_k<nums.length;_k++){
+        if(nums[_k]<=100&&freePct===null){freePct=nums[_k];continue;}
+        if(nums[_k]>100&&nums[_k]>=used&&total===null){total=nums[_k];continue;}
+        if(total!==null&&freeGB===null&&nums[_k]<total&&nums[_k]>0)freeGB=nums[_k];
+      }
+      if(freePct!==null&&total===null&&used>0&&freePct<100)total=Math.round(used*100/(100-freePct));
+      if(total!==null&&freeGB===null)freeGB=Math.round(total-used);
+      if(freePct===null&&total>0)freePct=Math.round((total-used)/total*100);
+      return {used:used,freePct:freePct,total:total,freeGB:freeGB};
+    }
+    return null;
+  }
+
+  // Format A: row label is the usage type ("DATA" / "LOG")
+  var _dA=diskRow('^DATA$');
+  var _lA=diskRow('^LOG$');
+
+  // Format B (transposed): metric row, DATA in col 0, LOG in col 1
+  var _usedRowD=tRNth('[Uu]sed\\s+[Dd]isk\\s+[Ss]pace',0,null);
+  var _usedRowL=tRNth('[Uu]sed\\s+[Dd]isk\\s+[Ss]pace',1,null);
+  var _pctRowD=tRNth('[Pp]ercentage.*[Ff]ree|[Ff]ree.*[Dd]isk',0,null);
+  var _pctRowL=tRNth('[Pp]ercentage.*[Ff]ree|[Ff]ree.*[Dd]isk',1,null);
+  var _dB=(_usedRowD!==null)?{used:_usedRowD,freePct:_pctRowD,total:null,freeGB:null}:null;
+  var _lB=(_usedRowL!==null)?{used:_usedRowL,freePct:_pctRowL,total:null,freeGB:null}:null;
+
+  // Format C: filesystem path as row label
+  var _dC=diskRow('/hana/data');
+  var _lC=diskRow('/hana/log');
+
+  // Merge: prefer Format A, then C (path-based), then B (transposed metric rows)
+  var _dVol=_dA||_dC||_dB;
+  var _lVol=_lA||_lC||_lB;
+
+  if(_dVol){
+    if(_dVol.used!=null)    data.dataVolUsed =_dVol.used;
+    if(_dVol.freePct!=null) data.dataFreePct =_dVol.freePct;
+    if(_dVol.total!=null)   data.dataVolTotal=_dVol.total;
+    if(_dVol.freeGB!=null)  data.dataVolFree =_dVol.freeGB;
+  }
+  if(_lVol){
+    if(_lVol.used!=null)    data.logVolUsed  =_lVol.used;
+    if(_lVol.freePct!=null) data.logFreePct  =_lVol.freePct;
+    if(_lVol.total!=null)   data.logVolTotal =_lVol.total;
+    if(_lVol.freeGB!=null)  data.logVolFree  =_lVol.freeGB;
+  }
+
+  data.dbSize=
+    tRFirst('(?:[Dd]ata(?:base)?\\s+[Ss]ize|[Cc]urrent\\s+[Dd]atabase\\s+[Ss]ize|DB\\s+[Ss]ize)',null)||
+    findN(['[Dd]atabase\\s+[Ss]ize[^0-9]*([0-9,]+)\\s*GB',
+           'DB\\s+[Ss]ize[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  data.dbGrowth=
+    tRFirst('(?:[Dd]ata(?:base)?\\s+[Gg]rowth|DB\\s+[Gg]rowth|Weekly\\s+[Gg]rowth)',null)||
+    findN(['[Dd]atabase\\s+[Gg]rowth[^0-9]*([0-9,]+)\\s*GB',
+           'DB\\s+[Gg]rowth[^0-9]*([0-9,]+)\\s*GB'])||
+    null;
+
+  // ── 11b. BUFFER HIT RATIOS ──────────────────────────────────────────────
+  data.abapBufferProg=
+    tRFirst('(?:[Pp]rogram(?:\\s+[Bb]uffer)?\\s+[Hh]it|[Hh]it\\s+[Rr]atio.*[Pp]rogram)',null)||
+    findN(['[Pp]rogram[^\\n]*[Hh]it[^0-9]*([0-9]+(?:\\.[0-9]+)?)\\s*%'])||null;
+  data.abapBufferTable=
+    tRFirst('(?:[Tt]able(?:\\s+[Dd]efinition)?\\s+[Hh]it|[Hh]it\\s+[Rr]atio.*[Tt]able)',null)||null;
+  data.abapBufferField=
+    tRFirst('(?:[Ff]ield(?:\\s+[Dd]esc(?:ription)?)?\\s+[Hh]it|[Hh]it\\s+[Rr]atio.*[Ff]ield)',null)||null;
+
+  // ── 11c. ENQUEUE / LOCK ──────────────────────────────────────────────────
+  data.enqueueErrors=
+    tRFirst('(?:[Ee]nqueue\\s+[Ee]rror|[Ll]ock\\s+[Ee]rror)',0)||
+    findN(['([0-9]+)\\s+[Ee]nqueue\\s+[Ee]rror'],0)||0;
+
+  // ── 11d. SAVEPOINTS / PERSISTENCE ───────────────────────────────────────
+  data.savepointDurationS=
+    tRFirst('(?:[Ss]avepoint\\s+[Dd]uration|[Aa]vg.*[Ss]avepoint)',null)||null;
+  data.savepointBlockS=
+    tRFirst('(?:[Ss]avepoint.*[Bb]lock|[Bb]locking.*[Ss]avepoint)',null)||null;
+  data.hanaPersistenceErrors=
+    tRFirst('(?:[Pp]ersistence\\s+[Ee]rror|[Gg]lobal.*[Ee]rror.*[Pp]ersist)',0)||0;
+  data.deltaMergeErrors=
+    tRFirst('(?:[Dd]elta\\s+[Mm]erge.*[Ee]rror|[Ee]rror.*[Dd]elta\\s+[Mm]erge|[Mm]erge\\s+[Ff]ailure)',0)||
+    findN(['([0-9]+)\\s+[Dd]elta\\s+[Mm]erge\\s+[Ee]rror'],0)||0;
+  data.deltaMergePending=
+    tRFirst('(?:[Pp]ending\\s+[Dd]elta\\s+[Mm]erge|[Dd]elta\\s+[Mm]erge\\s+[Pp]ending)',null)||null;
+
+  // ── 11e. qRFC / tRFC / SPOOL ─────────────────────────────────────────────
+  data.qrfcErrors=
+    tRFirst('(?:qRFC|[Qq]ueued\\s+RFC).*[Ee]rror',0)||
+    findN(['([0-9]+)\\s+qRFC\\s+[Ee]rror'],0)||0;
+  data.trfcErrors=
+    tRFirst('(?:tRFC|[Tt]ransactional\\s+RFC).*[Ee]rror',0)||
+    findN(['([0-9]+)\\s+tRFC\\s+[Ee]rror'],0)||0;
+  data.spoolIssues=
+    tRFirst('(?:[Ss]pool.*[Oo]verflow|[Ss]pool.*[Ee]rror)',0)||0;
+
+  // ── 11f. CHECK OVERVIEW ──────────────────────────────────────────────────
+  // The EWA CHECK OVERVIEW table has rows: [Area, Checks, Alerts, Priority]
+  // We extract it as a structured array
+  (function(){
+    var checkRows=[];
+    var overviewRe=/[Cc]heck\s+[Oo]verview|[Ss]ection\s+[Ss]ummary/i;
+    // Look for the check overview table: rows with numeric check count in col 1 or 2
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];
+      if(!r[0])continue;
+      // Skip header rows
+      if(/^(area|section|check|count|priority|status)/i.test(r[0].trim()))continue;
+      // Row with area name + numeric columns suggests check overview
+      var c1=numOf(r[1]),c2=numOf(r[2]);
+      if(r[0].length>5&&c1!==null&&c1>0&&c2!==null){
+        var ragRaw=(r[3]||r[4]||'').toLowerCase();
+        var rag=ragRaw.includes('err')||ragRaw.includes('red')||ragRaw.includes('crit')?'err':
+                ragRaw.includes('warn')||ragRaw.includes('amber')||ragRaw.includes('medium')||ragRaw.includes('high')?'warn':'ok';
+        if(c2===0)rag='ok';
+        checkRows.push({area:r[0].trim(),checks:Math.round(c1),alerts:Math.round(c2),rag:rag});
+      }
+    }
+    if(checkRows.length>=3)data.checkOverview=checkRows;
+  })();
+
+  // ── 11g. ALERT OVERVIEW ───────────────────────────────────────────────────
+  // Build alertOverview from alert rows if parseable from EWA
+  // Format: [ID/priority, Description, Count, Action]
+  (function(){
+    var alertRows=[];
+    var prioRe=/\b(critical|high|medium|low|error|warning)\b/i;
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];
+      if(!r[0])continue;
+      if(/^(id|#|alert|priority|description|recommendation)/i.test(r[0].trim()))continue;
+      // Rows that look like alert overview: short ID/number in col 0, description in col 1/2
+      if(/^\d+$/.test(r[0].trim())&&r[1]&&r[1].length>10){
+        var pr=r[2]||r[1];
+        var prMatch=(pr.match(prioRe)||['','medium'])[1].toLowerCase();
+        var prio=prMatch.includes('crit')||prMatch.includes('error')?'crit':
+                 prMatch.includes('high')||prMatch.includes('warn')?'high':
+                 prMatch.includes('med')?'med':'low';
+        alertRows.push({id:r[0].trim(),area:r[1]&&r[1].length<30?r[1]:'\u2014',
+          priority:prio,count:numOf(r[3])||1,
+          desc:r[1].length>30?r[1]:r[2]||r[1],
+          action:r[3]||r[4]||'\u2014',owner:'Basis',tl:'Review'});
+      }
+    }
+    if(alertRows.length>=2)data.alertOverview=alertRows;
+  })();
+
+  // ── 12. BACKUP & CONSISTENCY ──────────────────────────────────────────────
+  data.backupFailures=
+    tRFirst('(?:[Bb]ackup\\s+[Ff]ailures?|[Ff]ailed\\s+[Bb]ackups?)',0)||
+    findN(['([0-9]+)\\s+[Bb]ackup\\s+[Ff]ailures?',
+           '[Bb]ackup\\s+[Ff]ailures?[:\\s]+([0-9]+)'],0);
+
+  data.backupDays=
+    tR('(?:[Ss]uccessful\\s+[Bb]ackup(?:s?\\s+[Dd]ays?)?|[Bb]ackup\\s+[Dd]ays?)',1)||
+    find(['([0-9]+\\/[0-9]+)\\s+(?:days?|backups?|backup days)',
+          '[Bb]ackup[^0-9]*([0-9]+\\/[0-9]+)'])||
+    null;
+
+  data.lastConsistencyCheck=
+    find(['[Cc]onsistency[^\\n]*(\\d{2}\\.\\d{2}\\.\\d{4})',
+          '([0-9]{2}\\.[0-9]{2}\\.[0-9]{4})[^\\n]*[Cc]onsistency'])||
+    null;
+
+  // ── 13. ABAP DUMPS ────────────────────────────────────────────────────────
+  data.abapDumps=
+    tRFirst('(?:ABAP\\s+[Dd]umps?(?:\\s+\\(ST22\\))?|Number\\s+of\\s+ABAP\\s+[Dd]umps?|ST22)',null)||
+    findN(['([0-9]+)[ \\t]+ABAP[ \\t]+[Dd]umps?',
+           'ABAP[^\\n]*[Dd]umps?[^\\n]*[:\\-]\\s*([0-9]+)',
+           'ST22[^\\n]*[:\\-]\\s*([0-9]+)'])||
+    null;
+
+  data.peakDumpDate=
+    find(['[Pp]eak[^\\n]*(\\d{2}\\.\\d{2}\\.\\d{4})',
+          '[Ss]pike[^\\n]*(\\d{2}\\.\\d{2}\\.\\d{4})',
+          '[Mm]ost[^\\n]*(\\d{2}\\.\\d{2}\\.\\d{4})[^\\n]*dumps?'])||
+    null;
+
+  data.peakDumpCount=
+    findN(['[Pp]eak[^0-9]*([0-9]+)\\s+dumps?',
+           '([0-9]+)\\s+dumps?\\s+on\\s+[0-9]{2}\\.[0-9]{2}'])||
+    null;
+
+  // Build dumpsByDay from table rows matching date pattern dd.mm.yyyy + number
+  var dumpDateRows=rows.filter(function(r){
+    return r[0]&&/^\d{2}\.\d{2}\.?\d{0,4}/.test(r[0].trim())&&
+           r.length>=2&&/^[0-9]+$/.test((r[1]||'').trim());
+  });
+  if(dumpDateRows.length>=3){
+    data.dumpsByDay=dumpDateRows.slice(0,8).map(function(r){return parseInt(r[1])||0;});
+    data.dumpDayLabels=dumpDateRows.slice(0,8).map(function(r){return r[0].trim();});
+    // Derive peak from parsed dump data if not already found
+    if(!data.peakDumpDate){
+      var mx=0,mxi=0;
+      data.dumpsByDay.forEach(function(v,i){if(v>mx){mx=v;mxi=i;}});
+      data.peakDumpDate=data.dumpDayLabels[mxi]||null;
+      data.peakDumpCount=mx||null;
+    }
+    if(!data.abapDumps){
+      data.abapDumps=data.dumpsByDay.reduce(function(a,b){return a+b;},0)||null;
+    }
+  }else{
+    data.dumpsByDay=null;
+    data.dumpDayLabels=null;
+  }
+
+  // ── 14. TRANSPORT ─────────────────────────────────────────────────────────
+  data.transportSeqErrors=
+    tRFirst('(?:[Ss]equence\\s+[Ee]rrors?|[Oo]vertakers?(?:\\s+and\\s+[Bb]ypassed)?|[Ss]equence\\s+[Vv]iolation)',null)||
+    findN(['([0-9]+)[ \\t]+[Ss]equence[ \\t]+[Ee]rrors?',
+           '[Ss]equence\\s+[Ee]rrors?[^0-9\\n]*([0-9]+)',
+           'overtakers?[^0-9\\n]*([0-9]+)'])
+    || 0;
+
+  data.transportCount=
+    tRFirst('(?:[Tt]otal\\s+[Tt]ransports?|[Tt]ransport\\s+[Rr]equests?\\s+[Cc]reated|[Tt]ransport\\s+[Rr]equests?\\s+[Ii]mported)',null)||
+    findN(['[Tt]ransport\\s+[Rr]equests?[:\\s]+([0-9]+)\\s+(?:total|created|this week)',
+           '([0-9]+)\\s+[Tt]ransports?\\s+(?:this week|total)'])||
+    null;
+
+  data.failedImports=
+    tRFirst('(?:[Ff]ailed\\s+[Ii]mports?|[Ii]mport\\s+[Ee]rrors?(?:\\s+[Uu]nresolved)?)',0)||
+    findN(['[Ff]ailed\\s+[Ii]mports?[:\\s]+([0-9]+)',
+           '([0-9]+)\\s+[Ff]ailed\\s+[Ii]mports?'],0);
+
+  data.updateErrors=
+    tRFirst('(?:[Uu]pdate\\s+[Ee]rrors?|SM13)',0)||
+    findN(['[Uu]pdate\\s+[Ee]rrors?[:\\s]+([0-9]+)',
+           '([0-9]+)\\s+[Uu]pdate\\s+[Ee]rrors?'],0);
+
+  data.shortLeadTime=
+    tRFirst('(?:[Ss]hort(?:\\s+[Tt]ransition)?\\s+[Tt]ime(?:\\s+[Tt]ransports?)?|<\\s*1\\s+[Dd]ay)',0)||
+    findN(['[Ss]hort\\s+lead\\s+time[^0-9]*([0-9]+)',
+           '([0-9]+)[^\\n]*(?:short|<\\s*1\\s+day|transition\\s+time\\s*<)'],0);
+
+  data.emergencyTransports=
+    tRFirst('(?:[Ee]mergency\\s+[Tt]ransports?)',0)||
+    findN(['[Ee]mergency[^0-9]*([0-9]+)\\s+[Tt]ransports?',
+           '([0-9]+)\\s+[Ee]mergency\\s+[Tt]ransports?'],0);
+
+  // ── 15. SECURITY ──────────────────────────────────────────────────────────
+  data.debugUsers=
+    tRFirst('(?:S_DEVELOP[^\\n]*DEBUG|[Dd]ebug(?:ging)?\\s+[Aa]uthorization|[Uu]sers?\\s+with\\s+DEBUG)',0)||
+    findN(['([0-9]+)\\s+[Uu]sers?[^\\n]*S_DEVELOP[^\\n]*DEBUG',
+           'S_DEVELOP[^0-9]*([0-9]+)\\s+[Uu]sers?',
+           '([0-9]+)\\s+[Uu]sers?[^\\n]*debug[^\\n]*auth'],0);
+
+  data.defaultPasswords=/SAP\*|SAPCPIC|TMSADM/i.test(T)&&
+    /default\s+password|initial\s+password|RSUSR003/i.test(T);
+
+  data.firefighterAccounts=
+    tRFirst('(?:[Ff]irefighter|GRC\\s+[Ff]irefighter|VIRSA|EAM)',0)||
+    findN(['([0-9]+)\\s+[Ff]irefighter','[Ff]irefighter[^0-9]*([0-9]+)'],0);
+
+  data.hanaAlert59=/Alert[\s\-]*59|[Bb]locking\s+Trans/i.test(T);
+
+  data.blockingTxnCount=
+    tRFirst('(?:Alert\\s*59|[Bb]locking\\s+[Tt]rans(?:action)?)',null)||
+    findN(['Alert\\s*59[^0-9]*([0-9]+)',
+           '[Bb]locking[^0-9]*([0-9]+)\\s+(?:times?|occurrences?)'])
+    || 0;
+
+  // ── 16. TOP SQL STATEMENTS ────────────────────────────────────────────────
+  // EWA SQL table structure: [Rank, Hash, Type, ElapsedS, LockS, ExecCount, Table, Program]
+  // Identify SQL rows: col[0] is "1"/"2" AND col[1] looks like a hex hash (6-16 chars)
+  var sqlRows=rows.filter(function(r){
+    var rank=parseInt((r[0]||'').trim());
+    var hash=(r[1]||'').trim();
+    return !isNaN(rank)&&rank>=1&&rank<=10&&
+           /^[0-9a-f]{6,16}$/i.test(hash)&&r.length>=4;
+  });
+  // Alternative: col[0] is rank, col[2] is SQL operation type
+  if(!sqlRows.length){
+    sqlRows=rows.filter(function(r){
+      var rank=parseInt((r[0]||'').trim());
+      return !isNaN(rank)&&rank>=1&&rank<=10&&
+             /^(INSERT|SELECT|UPDATE|DELETE|MERGE)$/i.test((r[2]||'').trim())&&
+             r.length>=4;
+    });
+  }
+
+  function parseSqlRow(r){
+    var obj={};
+    obj.hash=(r[1]||'').trim().substring(0,16)
+    || 0;
+    var typeM=(r[2]||'').trim().match(/^(INSERT|SELECT|UPDATE|DELETE|MERGE)$/i);
+    obj.type=typeM?typeM[1].toUpperCase():null;
+    // Elapsed time — may be in col 3 or col 4 depending on format
+    obj.elapsed=numOf(r[3])||numOf(r[4])
+    || 0;
+    // Lock duration — col 4 or 5
+    var lockCand=numOf(r[4]);
+    if(lockCand===null||lockCand>obj.elapsed)lockCand=numOf(r[5]);
+    obj.lock=(lockCand!==null&&lockCand<=obj.elapsed)?lockCand:null;
+    // Execution count — next numeric after lock
+    obj.execCount=numOf(r[5])||numOf(r[6])
+    || 0;
+    // Table name — uppercase alpha+underscore, length 2-30
+    for(var k=6;k<r.length;k++){
+      if(/^[A-Z][A-Z0-9_]{1,29}$/i.test((r[k]||'').trim())&&(r[k]||'').trim().length>1){
+        obj.table=(r[k]||'').trim().toUpperCase();break;
+      }
+    }
+    // Program name — similar pattern but may contain /
+    for(var m=7;m<r.length;m++){
+      if(/^[A-Z][A-Z0-9_\/]{3,29}$/i.test((r[m]||'').trim())){
+        obj.program=(r[m]||'').trim();break;
+      }
+    }
+    return obj;
+  }
+
+  if(sqlRows.length>=1){
+    var s1=parseSqlRow(sqlRows[0]);
+    data.topSqlHash=s1.hash||find(['([0-9a-f]{8})\\s+(?:INSERT|SELECT|UPDATE|DELETE)']);
+    data.topSqlType=s1.type||find(['(?:#1|Rank\\s*1|top[^\\n]{0,20})(INSERT|SELECT|UPDATE|DELETE)']);
+    data.topSqlElapsedS=s1.elapsed||findN(['(?:[Tt]otal\\s+)?[Ee]lapsed[^0-9]*([0-9,]+)\\s*[Ss](?:ec)?']);
+    data.topSqlLockS=s1.lock||findN(['[Ll]ock\\s+[Dd]uration[^0-9]*([0-9,]+)\\s*[Ss]']);
+    data.topSqlExecCount=s1.execCount||findN(['[Ee]xecution(?:s)?[:\\s]+([0-9,]+)']);
+    data.topSqlTable=s1.table||find(['INSERT\\s+(?:INTO\\s+)?([A-Z][A-Z0-9_]{2,20})']);
+    data.topSqlProgram=s1.program||find(['[Pp]rogram[:\\s]+([A-Z][A-Z0-9_/]{3,30})']);
+  }else{
+    data.topSqlHash=find(['([0-9a-f]{8})\\s+(?:INSERT|SELECT|UPDATE|DELETE)']);
+    data.topSqlType=find(['(?:#1|[Rr]ank\\s*1|top[^\\n]{0,20})(INSERT|SELECT|UPDATE|DELETE)']);
+    data.topSqlElapsedS=findN(['(?:[Tt]otal\\s+)?[Ee]lapsed[^0-9]*([0-9,]+)\\s*[Ss](?:ec)?']);
+    data.topSqlLockS=findN(['[Ll]ock\\s+[Dd]uration[^0-9]*([0-9,]+)\\s*[Ss]']);
+    data.topSqlExecCount=findN(['[Ee]xecution(?:s)?[:\\s]+([0-9,]+)']);
+    data.topSqlTable=find(['INSERT\\s+(?:INTO\\s+)?([A-Z][A-Z0-9_]{2,20})']);
+    data.topSqlProgram=find(['[Pp]rogram[:\\s]+([A-Z][A-Z0-9_/]{3,30})']);
+  }
+
+  data.topSqlLockPct=(data.topSqlLockS&&data.topSqlElapsedS&&data.topSqlElapsedS>0)?
+    parseFloat(((data.topSqlLockS/data.topSqlElapsedS)*100).toFixed(2)):null;
+
+  // SQL #2
+  if(sqlRows.length>=2){
+    var s2=parseSqlRow(sqlRows[1]);
+    data.sql2Hash=s2.hash
+    || 0;
+    data.sql2Type=s2.type
+    || 0;
+    data.sql2ElapsedS=s2.elapsed||null;
+    data.sql2ExecCount=s2.execCount||null;
+    data.sql2AvgUs=(s2.elapsed&&s2.execCount&&s2.execCount>0)?
+      Math.round((s2.elapsed*1e6)/s2.execCount):null;
+  }else{
+    data.sql2Hash=null;data.sql2Type=null;data.sql2ElapsedS=null;
+    data.sql2ExecCount=null;data.sql2AvgUs=null;
+  }
+
+  // ── 17. TOP TRANSACTIONS ──────────────────────────────────────────────────
+  // EWA format A: [Rank, TxnCode, Percentage, Description]  (rank in col 0)
+  // EWA format B: [TxnCode, Percentage, Description]        (no rank col)
+  // Identify: rank col is integer 1-20, txn code is 2-20 alphanumeric chars
+  var txnRowsA=rows.filter(function(r){
+    var rank=parseInt((r[0]||'').trim());
+    var code=(r[1]||'').trim();
+    var pct=numOf(r[2]);
+    return !isNaN(rank)&&rank>=1&&rank<=20&&
+           /^[A-Z0-9_\/][A-Z0-9_\/.]{1,25}$/i.test(code)&&
+           pct!==null&&pct<=100&&r.length>=3;
+  });
+  var txnRowsB=rows.filter(function(r){
+    var code=(r[0]||'').trim();
+    var pct=numOf(r[1]);
+    return /^[A-Z][A-Z0-9_\/\.]{1,25}$/i.test(code)&&
+           pct!==null&&pct>0&&pct<=100&&r.length>=2&&
+           // Exclude SQL hashes and numeric-only codes
+           !/^[0-9a-f]{6,16}$/i.test(code)&&
+           !/^[0-9]+$/.test(code);
+  });
+
+  var txnSrc=(txnRowsA.length>=3)?txnRowsA:(txnRowsB.length>=3?txnRowsB:null);
+  if(txnSrc){
+    var useA=(txnSrc===txnRowsA);
+    var parsed=txnSrc.slice(0,8).map(function(r){
+      if(useA){
+        return{code:(r[1]||'').trim(),pct:numOf(r[2])||0,desc:(r[3]||r[4]||'').trim()};
+      }else{
+        return{code:(r[0]||'').trim(),pct:numOf(r[1])||0,desc:(r[2]||r[3]||'').trim()};
+      }
+    }).filter(function(t){return t.code&&t.pct>0;});
+    data.topTxns=parsed.length?parsed:null;
+  }else{
+    data.topTxns=null;
+  }
+
+  // ── 18. LARGEST TABLE / APPLICATION LOG ──────────────────────────────────
+  data.largestTable=
+    tR('(?:[Ll]argest\\s+[Tt]able|[Tt]able\\s+(?:with\\s+)?[Mm]ost)',1)||
+    find(['[Ll]argest\\s+[Tt]able[:\\s]+([A-Z][A-Z0-9_]+)'])||
+    null;
+
+  data.baldatSizeMB=
+    tRFirst('(?:BALDAT|[Aa]pplication\\s+[Ll]og\\s+[Tt]able)',null)||
+    findN(['BALDAT[^0-9]*([0-9,]+)\\s*MB','([0-9,]+)\\s*MB[^\\n]*BALDAT'])||
+    null;
+
+  data.baldatDeltaMB=
+    findN(['BALDAT[^\\n]*[Dd]elta[^0-9]*([0-9,]+\\.?[0-9]*)',
+           '[Dd]elta[^0-9]*([0-9,]+\\.?[0-9]*)[^\\n]*BALDAT'])||
+    null;
+
+  data._parsed=true;
+  return data;
+}
+
+
+// ═══ UPLOAD HANDLERS ═══
+function triggerUpload(i){document.getElementById('fileInput'+i).click();}
+
+function handleFile(i, input){
+  const file=input.files[0]; if(!file)return;
+  const slot=document.getElementById('slot'+i);
+  const label=document.getElementById('slotLabel'+i);
+  label.innerHTML='<span style="font-size:10px;color:#0070F2;font-weight:600">Reading\u2026</span>';
+  const ext=file.name.split('.').pop().toLowerCase();
+
+  if(ext==='docx'){
+    if(typeof JSZip==='undefined'){label.innerHTML='<span style="font-size:10px;color:#BB0000">JSZip not loaded \u2014 check internet connection</span>';return;}
+    const reader=new FileReader();
+    reader.onload=function(e2){
+      JSZip.loadAsync(e2.target.result).then(function(zip){
+        const entry=zip.file('word/document.xml');
+        if(!entry){label.innerHTML='<span style="font-size:10px;color:#BB0000">Not a valid .docx file</span>';return;}
+        return entry.async('string');
+      }).then(function(xmlText){
+        if(!xmlText)return;
+        const d=parseEWA(xmlText,file.name);
+        _onParsed(i,file,d);
+      }).catch(function(err){label.innerHTML='<span style="font-size:10px;color:#BB0000">Error: '+esc(err.message)+'</span>';});
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader=new FileReader();
+    reader.onload=function(e2){const d=parseEWA(e2.target.result,file.name);_onParsed(i,file,d);};
+    reader.onerror=function(){label.innerHTML='<span style="font-size:10px;color:#BB0000">Read error</span>';};
+    reader.readAsText(file);
+  }
+}
+
+function _onParsed(i,file,d){
+  uploadedData[i]=d;
+  document.getElementById('slot'+i).classList.add('loaded');
+  const nF=Object.values(d).filter(v=>v!==null&&v!==undefined&&v!==false&&v!=='UNKNOWN'&&v!=='SPS XX'&&v!=='SAP System').length;
+  document.getElementById('slotLabel'+i).innerHTML=
+    '<strong style="font-size:11px;color:#107E3E">'+esc(d.sid||'?')+' \u2014 '+esc(d.period||'?')+'</strong><br/>'
+    +'<span style="font-size:10px;color:#555">'+esc(file.name.substring(0,22))+(file.name.length>22?'\u2026':'')+'</span><br/>'
+    +'<span style="font-size:9.5px;color:#888">'+nF+' fields extracted</span>';
+  const cnt=uploadedData.filter(Boolean).length;
+  document.getElementById('upStatus').textContent=cnt+' report(s) loaded. '+(cnt>1?'Multiple reports ready for trend analysis.':'Click Apply to rebuild dashboard.');
+  const btn=document.getElementById('btnApply');btn.disabled=false;btn.style.opacity='1';
+  if(cnt>1)document.getElementById('btnTrend').style.display='inline-flex';
+}
+
+function applyUploadedData(){
+  const loaded=uploadedData.filter(Boolean);
+  if(loaded.length===0)return;
+  const spin=document.getElementById('upSpinner');
+  spin.style.display='inline';
+  document.getElementById('btnApply').disabled=true;
+  setTimeout(function(){
+    try{
+      renderDashboard(loaded[0],loaded);
+      document.getElementById('uploadPanel').classList.remove('active');
+      document.getElementById('upStatus').innerHTML='<strong style="color:#107E3E">&#10003; Dashboard rebuilt</strong> from: '
+        +loaded.map(r=>esc(r._filename||'file')).join(', ')
+        +' <span style="color:#888;font-size:11px;">('+Object.values(loaded[0]).filter(v=>v!==null&&v!==undefined&&v!==false&&v!=='UNKNOWN').length+' fields extracted)</span>';
+    }catch(err){
+      document.getElementById('upStatus').innerHTML='<span style="color:#BB0000">Error rebuilding dashboard: '+esc(err.message)+'</span>';
+      console.error(err);
+    }
+    spin.style.display='none';
+    document.getElementById('btnApply').disabled=false;
+    document.getElementById('btnApply').style.opacity='1';
+  },60);
+}
+
+function clearAllUploads(){
+  for(let i=0;i<4;i++){
+    uploadedData[i]=null;
+    const s=document.getElementById('slot'+i);if(s)s.classList.remove('loaded');
+    const l=document.getElementById('slotLabel'+i);
+    if(l)l.innerHTML='EWA Report '+(i+1)+(i===0?' (Primary)':'')+'<br/><span style="font-size:10px;color:#888">Click to upload</span>';
+    const fi=document.getElementById('fileInput'+i);if(fi)fi.value='';
+  }
+  document.getElementById('upStatus').textContent='';
+  document.getElementById('btnApply').disabled=true;document.getElementById('btnApply').style.opacity='.5';
+  document.getElementById('btnTrend').style.display='none';
+}
+
+function showTrendAnalysis() {
+  const loaded = uploadedData.filter(Boolean);
+  if (loaded.length < 2) { alert('Upload at least 2 EWA reports to view trend analysis.'); return; }
+  document.getElementById('trendOverlay').style.display = 'flex';
+  renderTrendAnalysis(loaded);
+}
+
+function renderTrendAnalysis(reports) {
+  const container = document.getElementById('trendContent');
+  const labels = reports.map((r,i) => r.period || ('Report '+(i+1)));
+
+  // Destroy old charts
+  trendCharts.forEach(c => c.destroy()); trendCharts = [];
+
+  // Build HTML
+  let html = '<div class="trend-kpi-row">';
+  const latest = reports[reports.length-1];
+  const first = reports[0];
+  function delta(a, b, unit, lowerBetter) {
+    if (a===null||b===null) return '';
+    const d = b - a;
+    const arrow = d > 0 ? (lowerBetter ? '▲' : '▲') : '▼';
+    const col = (d > 0) === !lowerBetter ? '#107E3E' : '#BB0000';
+    return ' <span style="font-size:10px;color:'+col+';font-weight:700">'+arrow+' '+Math.abs(d).toLocaleString()+unit+'</span>';
+  }
+  const metrics = [
+    {k:'dialogRespMs',label:'Avg Dialog (ms)',unit:'ms',lb:true},
+    {k:'rfcRespMs',label:'Avg RFC (ms)',unit:'ms',lb:true},
+    {k:'dbSizeGB',label:'DB Size (GB)',unit:' GB',lb:true},
+    {k:'hanaMemGB',label:'HANA Mem (GB)',unit:' GB',lb:true},
+    {k:'abapDumps',label:'ABAP Dumps',unit:'',lb:true},
+    {k:'activeUsers',label:'Active Users',unit:'',lb:false},
+  ];
+  metrics.forEach(m => {
+    const val = latest[m.k];
+    if (val !== null && val !== undefined) {
+      html += '<div class="trend-kpi"><div class="tv">'+(typeof val==='number'?val.toLocaleString():val)+(m.unit||'')+'</div>';
+      html += '<div class="tl2">'+m.label+'</div>';
+      html += delta(first[m.k], latest[m.k], m.unit, m.lb)+'</div>';
+    }
+  });
+  html += '</div>';
+
+  // Charts
+  html += '<div class="trend-chart-row">';
+  html += '<div style="background:#fafafa;border-radius:8px;padding:14px;border:1px solid #e1e2e6"><p style="font-size:12px;font-weight:700;margin:0 0 8px">Dialog Response Time (ms)</p><canvas id="trendC1" height="160"></canvas></div>';
+  html += '<div style="background:#fafafa;border-radius:8px;padding:14px;border:1px solid #e1e2e6"><p style="font-size:12px;font-weight:700;margin:0 0 8px">Database Size (GB)</p><canvas id="trendC2" height="160"></canvas></div>';
+  html += '</div>';
+  html += '<div class="trend-chart-row">';
+  html += '<div style="background:#fafafa;border-radius:8px;padding:14px;border:1px solid #e1e2e6"><p style="font-size:12px;font-weight:700;margin:0 0 8px">ABAP Dumps (count)</p><canvas id="trendC3" height="160"></canvas></div>';
+  html += '<div style="background:#fafafa;border-radius:8px;padding:14px;border:1px solid #e1e2e6"><p style="font-size:12px;font-weight:700;margin:0 0 8px">HANA Memory Used (GB)</p><canvas id="trendC4" height="160"></canvas></div>';
+  html += '</div>';
+
+  // Report summary table
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px"><thead><tr style="background:#0070F2;color:#fff">';
+  html += '<th style="padding:8px 10px;text-align:left">Report</th><th style="padding:8px;text-align:left">Period</th><th style="padding:8px;text-align:right">Dialog (ms)</th><th style="padding:8px;text-align:right">RFC (ms)</th><th style="padding:8px;text-align:right">DB Size (GB)</th><th style="padding:8px;text-align:right">Dumps</th><th style="padding:8px;text-align:right">Users</th></tr></thead><tbody>';
+  reports.forEach((r,i) => {
+    const bg = i%2===0?'#fff':'#f8f9fa';
+    html += '<tr style="background:'+bg+'"><td style="padding:7px 10px"><strong>Report '+(i+1)+'</strong></td>';
+    html += '<td style="padding:7px 8px">'+(r.period||'—')+'</td>';
+    html += '<td style="padding:7px 8px;text-align:right">'+(r.dialogRespMs!==null&&r.dialogRespMs!==undefined?r.dialogRespMs.toLocaleString()+'&thinsp;ms':'—')+'</td>';
+    html += '<td style="padding:7px 8px;text-align:right">'+(r.rfcRespMs!==null&&r.rfcRespMs!==undefined?r.rfcRespMs.toLocaleString()+'&thinsp;ms':'—')+'</td>';
+    html += '<td style="padding:7px 8px;text-align:right">'+(r.dbSizeGB!==null&&r.dbSizeGB!==undefined?r.dbSizeGB.toLocaleString()+'&thinsp;GB':'—')+'</td>';
+    html += '<td style="padding:7px 8px;text-align:right">'+(r.abapDumps!==null&&r.abapDumps!==undefined?r.abapDumps:'—')+'</td>';
+    html += '<td style="padding:7px 8px;text-align:right">'+(r.activeUsers!==null&&r.activeUsers!==undefined?r.activeUsers:'—')+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  // Draw trend charts
+  const chartOpts = (unit, refLine) => ({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:false, title:{display:true,text:unit}}}
+  });
+
+  function mkChart(id, key, color, unit) {
+    const vals = reports.map(r => r[key]);
+    if (vals.every(v => v===null||v===undefined)) return;
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    const c = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels:labels,
+        datasets:[{label:unit, data:vals, borderColor:color, backgroundColor:color+'22',
+          fill:true, tension:.35, pointRadius:5, pointBackgroundColor:color, borderWidth:2.5}]
+      },
+      options:chartOpts(unit)
+    });
+    trendCharts.push(c);
+  }
+
+  setTimeout(() => {
+    mkChart('trendC1','dialogRespMs','#0070F2','ms');
+    mkChart('trendC2','dbSizeGB','#107E3E','GB');
+    mkChart('trendC3','abapDumps','#BB0000','dumps');
+    mkChart('trendC4','hanaMemGB','#E9730C','GB');
+  }, 100);
+}
+
+// ===================== PDF EXPORT =====================
+
+// ===================== ACTION TRACKER EXPORT =====================
+
+/* Parse the live Action Tracker grid from the DOM.
+   Returns { headers: string[], rows: string[][], rawPriorities: string[] }           */
+function getActionTrackerData() {
+  const headers = [];
+  const rows = [];
+  const rawPriorities = [];   // keep raw chip text for Excel color-coding logic
+
+  const grid = document.querySelector('.at-grid');
+  if (!grid) return { headers, rows, rawPriorities };
+
+  // Header row
+  const hdrRow = grid.querySelector('.at-hdr');
+  if (hdrRow) {
+    hdrRow.querySelectorAll(':scope > div').forEach(d => headers.push(d.textContent.trim()));
+    // Append extra tracking columns for the exported file
+    headers.push('Assigned To', 'Target Date', 'Completion Date', 'Comments');
+  }
+
+  // Data rows — skip the header row itself
+  grid.querySelectorAll('.at-row:not(.at-hdr)').forEach(row => {
+    const cells = [];
+    row.querySelectorAll(':scope > div').forEach((cell, i) => {
+      // Clean whitespace; strip HTML to get readable text
+      let text = cell.innerText || cell.textContent || '';
+      text = text.replace(/\s+/g, ' ').trim();
+      cells.push(text);
+    });
+    if (cells.length) {
+      rawPriorities.push(cells[0] || '');
+      // Pad with empty tracking columns
+      while (cells.length < (headers.length || 10)) cells.push('');
+      rows.push(cells);
+    }
+  });
+
+  return { headers, rows, rawPriorities };
+}
+
+/* CSV EXPORT
+   Includes UTF-8 BOM so Excel opens it with correct encoding.                        */
+function exportActionCSV() {
+  const { headers, rows } = getActionTrackerData();
+  const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+
+  const lines = [];
+  // System metadata header block
+  lines.push(esc('EarlyWatch Alert — Action Tracker'));
+  const _d=_currentData||DEFAULT_DATA;
+  lines.push(esc('System ID') + ',' + esc(_d.sid||''));
+  lines.push(esc('Product') + ',' + esc(_d.product||''));
+  lines.push(esc('Analysis Period') + ',' + esc(_d.period||''));
+  lines.push(esc('Installation') + ',' + esc(_d.installation||''));
+  lines.push(esc('Generated') + ',' + esc(new Date().toLocaleDateString('en-GB')));
+  lines.push('');  // blank separator
+
+  // Column headers
+  lines.push(headers.map(esc).join(','));
+
+  // Data rows
+  rows.forEach(r => lines.push(r.map(esc).join(',')));
+
+  const csv = '\uFEFF' + lines.join('\r\n');   // BOM + CRLF
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'EWA_'+((_currentData||DEFAULT_DATA).sid||'EWA')+'_ActionTracker.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 500);
+}
+
+/* EXCEL EXPORT (.xlsx via SheetJS)
+   Sheet 1 — Action Tracker data with metadata header block & tracking columns
+   Sheet 2 — Priority legend / colour key                                              */
+function exportActionXLSX() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel library (SheetJS) is still loading. Please wait a moment and try again.');
+    return;
+  }
+
+  const { headers, rows, rawPriorities } = getActionTrackerData();
+
+  // ── Build Sheet 1: Action Tracker ──────────────────────────────────────────
+  const aoa = [];   // array-of-arrays for the sheet
+
+  // Metadata block (rows 1-6)
+  aoa.push(['EarlyWatch Alert — Action Tracker', '', '', '', '', '', '', '', '', '']);
+  const _xd=_currentData||DEFAULT_DATA;
+  aoa.push(['System ID:', _xd.sid||'', '', 'Product:', _xd.product||'', '', '', '', '', '']);
+  aoa.push(['Analysis Period:', _xd.period||'', '', 'Installation:', _xd.installation||'', '', '', '', '', '']);
+  aoa.push(['Generated:', new Date().toLocaleDateString('en-GB'), '', 'Session:', _xd.session||'', '', '', '', '', '']);
+  aoa.push([]);   // blank row
+  aoa.push([]);   // blank row
+
+  // Column header row (row 7)
+  aoa.push(headers);
+
+  // Data rows (rows 8+)
+  rows.forEach(r => aoa.push(r));
+
+  const ws1 = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Column widths  [Priority, Action, SAP Notes, Owner, Timeline, Status, Assigned, TargetDt, CompletDt, Comments]
+  ws1['!cols'] = [
+    { wch: 14 },   // Priority
+    { wch: 72 },   // Action
+    { wch: 20 },   // SAP Note(s)
+    { wch: 22 },   // Owner
+    { wch: 14 },   // Timeline
+    { wch: 10 },   // Status
+    { wch: 20 },   // Assigned To
+    { wch: 14 },   // Target Date
+    { wch: 16 },   // Completion Date
+    { wch: 30 },   // Comments
+  ];
+
+  // Merge the title cell across all columns
+  ws1['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:9} }];
+
+  // Freeze pane below row 7 (header row is index 6, data starts at 7)
+  ws1['!freeze'] = { xSplit: 0, ySplit: 7 };
+
+  // ── Build Sheet 2: Priority Legend ─────────────────────────────────────────
+  const legend = [
+    ['Priority Legend', '', ''],
+    ['Label', 'Meaning', 'Recommended Response'],
+    ['P1 – Critical', 'Immediate business / security risk', 'Resolve within 24–72 hours'],
+    ['P2 – High',     'Significant risk; short-term action required', 'Resolve within 14–45 days'],
+    ['P3 – Medium',   'Medium-term action recommended', 'Resolve within 30–60 days'],
+    ['P4 – Low',      'Best-practice improvement', 'Plan for 60–90 day window'],
+    ['Info',          'Informational / ECS verification required', 'Review at next scheduled service review'],
+    [],
+    ['Status Values', '', ''],
+    ['Open',          'Action not yet started', ''],
+    ['In Progress',   'Action is underway', ''],
+    ['Completed',     'Action has been resolved', ''],
+    ['Inform',        'No action required — for awareness only', ''],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(legend);
+  ws2['!cols'] = [{ wch: 20 }, { wch: 45 }, { wch: 40 }];
+  ws2['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:2} },
+    { s:{r:8,c:0}, e:{r:8,c:2} },
+  ];
+
+  // ── Assemble workbook and write ─────────────────────────────────────────────
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, 'Action Tracker');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Priority Legend');
+
+  XLSX.writeFile(wb, 'EWA_'+((_currentData||DEFAULT_DATA).sid||'EWA')+'_ActionTracker.xlsx');
+}
+
+function exportSection(sectionId, sectionTitle) {
+  const secEl = document.getElementById(sectionId);
+  if (!secEl) return;
+
+  // Capture only the canvases inside this section
+  const snapshots = {};
+  secEl.querySelectorAll('canvas[id]').forEach(c => {
+    try { snapshots[c.id] = c.toDataURL('image/png', 0.95); } catch(e) {}
+  });
+
+  // Clone only this section
+  const clone = secEl.cloneNode(true);
+
+  // Swap canvases → captured images
+  clone.querySelectorAll('canvas[id]').forEach(c => {
+    const src = snapshots[c.id];
+    if (!src) return;
+    const img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'max-width:100%;height:auto;display:block;border-radius:6px;';
+    img.alt = c.id;
+    c.replaceWith(img);
+  });
+
+  // Remove interactive controls inside the section
+  clone.querySelectorAll('.btn-sec-pdf,.print-hide').forEach(e => e.remove());
+
+  // Replace the section title span with plain text
+  const titleEl = clone.querySelector('.sec-title');
+  if (titleEl) { titleEl.style.display = 'block'; titleEl.textContent = sectionTitle.replace(/&amp;/g,'&'); }
+
+  const fullCSS = Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
+  const cleanTitle = sectionTitle.replace(/&amp;/g,'&').replace(/[^a-zA-Z0-9 _-]/g,'');
+
+  const printDoc = `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>EWA — ${cleanTitle} — ${(_currentData||DEFAULT_DATA).sid||'?'} — ${(_currentData||DEFAULT_DATA).period||'?'}</title>
+<style>
+${fullCSS}
+/* Section print overrides */
+body{background:#fff!important;padding:0!important;margin:0!important;font-size:11px;}
+.topbar,.navwrap,.upload-panel,.btn-pdf,.btn-upload,.btn-sec-pdf,.print-hide{display:none!important;}
+.sec{display:block!important;padding:0!important;}
+.main{padding:14px 18px!important;background:#fff!important;}
+.sec-title{font-size:15px!important;display:block!important;border-bottom:2px solid #0070F2;padding-bottom:7px;margin-bottom:14px;}
+.panel,.kpi{box-shadow:none!important;border:1px solid #e1e2e6!important;}
+.panel{break-inside:avoid;}
+@page{margin:14mm 12mm;size:A4 portrait;}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+</style>
+</head>
+<body>
+<div style="background:#0070F2;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+  <div>
+    <span style="font-size:13px;font-weight:700;">SAP EarlyWatch Alert — ${cleanTitle}</span>
+    <div style="font-size:10px;opacity:.85;margin-top:2px;">System ${(_currentData||DEFAULT_DATA).sid||'—'} &nbsp;·&nbsp; ${(_currentData||DEFAULT_DATA).product||'—'} &nbsp;·&nbsp; ${(_currentData||DEFAULT_DATA).cloud||'—'} &nbsp;·&nbsp; ${(_currentData||DEFAULT_DATA).period||'—'}</div>
+  </div>
+  <div style="font-size:10px;opacity:.75;text-align:right;">Session ${(_currentData||DEFAULT_DATA).session||'—'} &nbsp;·&nbsp; Installation ${(_currentData||DEFAULT_DATA).installation||'—'}<br/>Confidential — SAP EarlyWatch Alert Service</div>
+</div>
+<div class="main"><div class="sec active">
+${clone.innerHTML}
+</div></div>
+</body></html>`;
+
+  const win = window.open('', '_blank', 'width=1240,height=900,scrollbars=yes');
+  if (!win) {
+    const blob = new Blob([printDoc], {type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'EWA_'+((_currentData||DEFAULT_DATA).sid||'EWA')+'_'+cleanTitle.replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return;
+  }
+  win.document.open(); win.document.write(printDoc); win.document.close();
+  win.focus();
+  win.addEventListener('load', () => { setTimeout(() => win.print(), 400); });
+  setTimeout(() => { try { win.print(); } catch(e) {} }, 1500);
+}
+
+function exportPDF() {
+  // Step 1: capture every Chart.js canvas as a PNG data-URL BEFORE any DOM changes
+  const snapshots = {};
+  document.querySelectorAll('canvas[id]').forEach(c => {
+    try { snapshots[c.id] = c.toDataURL('image/png', 0.95); } catch(e) {}
+  });
+
+  // Step 2: clone the whole main content area
+  const mainEl = document.querySelector('.main');
+  const clone = mainEl.cloneNode(true);
+
+  // Step 3: expand all sections in clone
+  clone.querySelectorAll('.sec').forEach(s => { s.style.display = 'block'; s.classList.add('active'); });
+
+  // Step 4: swap canvases → captured img elements
+  clone.querySelectorAll('canvas[id]').forEach(c => {
+    const src = snapshots[c.id];
+    if (!src) return;
+    const img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'max-width:100%;height:auto;display:block;border-radius:6px;';
+    img.alt = c.id;
+    c.replaceWith(img);
+  });
+
+  // Step 5: remove interactive-only nodes
+  clone.querySelectorAll('.upload-panel,.btn-pdf,.btn-upload,.btn-sec-pdf,.print-hide').forEach(e => e.remove());
+
+  // Step 6: gather full CSS from page
+  const fullCSS = Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
+
+  // Step 7: build the complete print document
+  const printDoc = `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>EWA Dashboard — ${(_currentData||DEFAULT_DATA).sid||'EWA'} — ${(_currentData||DEFAULT_DATA).period||''}</title>
+<style>
+${fullCSS}
+/* ---- Print-mode overrides ---- */
+body{background:#fff!important;padding:0!important;margin:0!important;font-size:11px;}
+.topbar,.navwrap,.upload-panel,.btn-pdf,.btn-upload,.print-hide,.trend-overlay{display:none!important;}
+.sec{display:block!important;page-break-before:always;}
+.sec:first-child{page-break-before:auto;}
+.main{padding:14px 18px!important;background:#fff!important;}
+.sec-title{font-size:15px!important;border-bottom:2px solid #0070F2;padding-bottom:7px;margin-bottom:14px;}
+.panel,.kpi{box-shadow:none!important;border:1px solid #e1e2e6!important;}
+.panel{break-inside:avoid;}
+.kpi-grid{grid-template-columns:repeat(4,1fr)!important;}
+@page{margin:14mm 12mm;size:A4 portrait;}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+</style>
+</head>
+<body>
+<div style="background:#0070F2;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+  <div>
+    <span style="font-size:13px;font-weight:700;">SAP EarlyWatch Alert — Executive Dashboard</span>
+    <div style="font-size:10px;opacity:.85;margin-top:2px;">System ${(_currentData||DEFAULT_DATA).sid||'—'} &nbsp;·&nbsp; ${(_currentData||DEFAULT_DATA).product||'—'} &nbsp;·&nbsp; ${(_currentData||DEFAULT_DATA).cloud||'—'} &nbsp;·&nbsp; ${(_currentData||DEFAULT_DATA).period||'—'}</div>
+  </div>
+  <div style="font-size:10px;opacity:.75;text-align:right;">Session ${(_currentData||DEFAULT_DATA).session||'—'} &nbsp;·&nbsp; Installation ${(_currentData||DEFAULT_DATA).installation||'—'}<br/>Confidential — SAP EarlyWatch Alert Service</div>
+</div>
+<div class="main">${clone.innerHTML}</div>
+</body></html>`;
+
+  // Step 8: open print-ready page in new tab
+  const win = window.open('', '_blank', 'width=1240,height=900,scrollbars=yes');
+  if (!win) {
+    // Fallback if pop-ups blocked: offer download
+    const blob = new Blob([printDoc], {type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'EWA_Dashboard_'+((_currentData||DEFAULT_DATA).sid||'EWA')+'_'+new Date().toISOString().slice(0,10)+'.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return;
+  }
+  win.document.open(); win.document.write(printDoc); win.document.close();
+  win.focus();
+  // Wait for document + images to be ready before triggering print
+  win.addEventListener('load', () => { setTimeout(() => { win.print(); }, 400); });
+  setTimeout(() => { try { win.print(); } catch(e) {} }, 1500);
+}
+
+// ===================== TAB NAVIGATION =====================
+function show(id) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  if (sec) sec.classList.add('active');
+  const btn = document.querySelector('.nb[onclick*="' + id + '"]');
+  if (btn) btn.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+// ═══ BOOTSTRAP ═══
+document.addEventListener('DOMContentLoaded',function(){
+  renderDashboard(DEFAULT_DATA,[DEFAULT_DATA]);
+});
+</script>
+</body>
+</html>

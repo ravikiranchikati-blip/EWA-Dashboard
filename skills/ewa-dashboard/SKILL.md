@@ -3,7 +3,7 @@ name: ewa-dashboard
 description: >-
   Generates a customer-ready SAP EWA service review dashboard from .doc/.docx EWA reports. Handles Word 2003 XML .doc (native SAP ECS format), OOXML .docx with SAP purl.oclc.org namespace, standard OOXML .docx. Parser v3.4 auto-extracts customer name and cloud provider (AWS/GCP/Azure) from Hardware Configuration. Self-contained HTML dashboard: 12 tabs, RAG indicators, Chart.js charts, PDF export, Action Tracker CSV/Excel, 4-EWA trend panel, 12-month Capacity trends — DB size history (Excel or me.sap.com seed) and HANA memory trend (localStorage auto-accumulation). Works on Windows and macOS. Use when: analyze EWA, prepare EWA dashboard, EWA service review, Early Watch Alert report, EWA analysis, prepare for customer review, service review dashboard, EWA presentation, generate dashboard from EWA, upload EWA report.
 metadata:
-  author: SAP ECS TSM
+  author: Ravikiran Chikati
   version: 2.3.0
   tags: ewa sap dashboard service-review ecs hana reporting capacity memory-trend local-storage cross-platform
 ---
